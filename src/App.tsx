@@ -95,7 +95,7 @@ export function App() {
 
     if (authCode) {
       window.history.replaceState({}, '', window.location.pathname);
-      fetch('/api/auth/github', {
+      fetch('/api/auth/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: authCode }),
