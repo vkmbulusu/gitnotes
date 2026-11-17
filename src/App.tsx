@@ -72,6 +72,46 @@ export function App() {
     setIsSidebarVisible((prev) => !prev);
   };
 
+  // Check for OAuth tokens or callbacks in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ghToken = params.get('gh_token');
+    const authCode = params.get('code');
+    const authError = params.get('auth_error');
+
+    if (authError) {
+      alert(`GitHub authentication error: ${authError}`);
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    if (ghToken) {
+      window.history.replaceState({}, '', window.location.pathname);
+      verifyToken(ghToken).then((user) => {
+        handleLoginSuccess(ghToken, user);
+      });
+      return;
+    }
+
+    if (authCode) {
+      window.history.replaceState({}, '', window.location.pathname);
+      fetch('/api/auth/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: authCode }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.access_token) {
+            verifyToken(data.access_token).then((user) => {
+              handleLoginSuccess(data.access_token, user);
+            });
+          }
+        })
+        .catch((err) => console.error('OAuth code exchange failed:', err));
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     if (token) {

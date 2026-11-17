@@ -10,8 +10,8 @@ import {
   X,
   Shield,
   Sparkles,
-  Server,
   Globe,
+  Github,
 } from 'lucide-react';
 
 interface GitHubAuthModalProps {
@@ -23,6 +23,8 @@ interface GitHubAuthModalProps {
   onUseDemoMode: () => void;
 }
 
+const GITHUB_CLIENT_ID = 'Ov23li90Rm7aT2Cp1c0g';
+
 export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
   isOpen,
   onClose,
@@ -31,6 +33,7 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
   onLogout,
   onUseDemoMode,
 }) => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [provider, setProvider] = useState<GitProvider>('github');
   const [tokenInput, setTokenInput] = useState('');
   const [customHost, setCustomHost] = useState('');
@@ -38,6 +41,12 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleOAuthLogin = () => {
+    const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/github`);
+    const scope = encodeURIComponent('repo,read:user');
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=${scope}&redirect_uri=${redirectUri}`;
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +62,6 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
         onLoginSuccess(tokenInput.trim(), user);
         onClose();
       } else {
-        // GitLab / Gitea / Self-Hosted connection
         const user: GitHubUser = {
           login: 'git-user',
           name: provider === 'gitlab' ? 'GitLab Enterprise User' : 'Self-Hosted Git User',
@@ -87,10 +95,10 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-semibold text-neutral-900 dark:text-white">
-                Git Provider Sign In
+                Sign In to GitNotes
               </h2>
               <p className="text-xs text-neutral-500">
-                Connect GitHub, GitLab, Gitea or Self-Hosted
+                Each notebook is a Git repository
               </p>
             </div>
           </div>
@@ -138,128 +146,15 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
               </button>
             </div>
           ) : (
-            <form onSubmit={handleVerify} className="space-y-4">
-              {/* Provider Selection Tabs */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Choose Git Provider
-                </label>
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-medium">
-                  <button
-                    type="button"
-                    onClick={() => setProvider('github')}
-                    className={`py-1.5 px-2 rounded-lg transition text-center ${
-                      provider === 'github'
-                        ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
-                        : 'text-neutral-600 dark:text-neutral-400'
-                    }`}
-                  >
-                    GitHub
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setProvider('gitlab')}
-                    className={`py-1.5 px-2 rounded-lg transition text-center ${
-                      provider === 'gitlab'
-                        ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
-                        : 'text-neutral-600 dark:text-neutral-400'
-                    }`}
-                  >
-                    GitLab
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setProvider('gitea')}
-                    className={`py-1.5 px-2 rounded-lg transition text-center ${
-                      provider === 'gitea'
-                        ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
-                        : 'text-neutral-600 dark:text-neutral-400'
-                    }`}
-                  >
-                    Gitea / Self-Host
-                  </button>
-                </div>
-              </div>
-
-              {/* Custom Host for Self-Hosted or GitLab Enterprise */}
-              {provider !== 'github' && (
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Server URL / Host
-                  </label>
-                  <div className="relative">
-                    <Globe className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="url"
-                      value={customHost}
-                      onChange={(e) => setCustomHost(e.target.value)}
-                      placeholder={
-                        provider === 'gitlab'
-                          ? 'https://gitlab.com or https://git.company.com'
-                          : 'https://gitea.company.com'
-                      }
-                      className="w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Personal Access Token Input */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Personal Access Token (PAT)
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="password"
-                    required
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder={
-                      provider === 'github'
-                        ? 'ghp_xxxxxxxxxxxxxxxxxxxx'
-                        : 'glpat-xxxxxxxx or token'
-                    }
-                    className="w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-                  <span className="flex items-center gap-1">
-                    <Shield className="w-3 h-3 text-neutral-400" />
-                    Scope: <code className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.2 rounded font-mono">{provider === 'gitlab' ? 'api / read_repository' : 'repo'}</code>
-                  </span>
-                  {provider === 'github' && (
-                    <a
-                      href="https://github.com/settings/tokens/new?scopes=repo&description=GitNotes%20App"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 font-medium"
-                    >
-                      <span>Generate on GitHub</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-300 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-none" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
+            <div className="space-y-4">
+              {/* 1-Click Continue with GitHub */}
               <button
-                type="submit"
-                disabled={isValidating || !tokenInput.trim()}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold shadow transition flex items-center justify-center gap-2"
+                type="button"
+                onClick={handleOAuthLogin}
+                className="w-full py-3 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-black dark:bg-white dark:hover:bg-neutral-100 dark:active:bg-neutral-200 text-white dark:text-neutral-900 text-xs font-bold shadow-md transition flex items-center justify-center gap-2.5"
               >
-                {isValidating ? (
-                  <span>Authenticating...</span>
-                ) : (
-                  <span>Connect {provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : 'Self-Hosted Git'}</span>
-                )}
+                <Github className="w-4 h-4" />
+                <span>Continue with GitHub (1-Click)</span>
               </button>
 
               <div className="relative py-1 flex items-center justify-center">
@@ -268,6 +163,115 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
                   or
                 </span>
               </div>
+
+              {/* Toggle manual token / self-hosted options */}
+              {!showAdvanced ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(true)}
+                  className="w-full py-2 px-3 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition text-center"
+                >
+                  Use Personal Access Token or Self-Hosted Git (GitLab, Gitea) ▾
+                </button>
+              ) : (
+                <form onSubmit={handleVerify} className="space-y-4 pt-1 border-t border-neutral-100 dark:border-neutral-800">
+                  {/* Provider Selection Tabs */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      Choose Git Provider
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setProvider('github')}
+                        className={`py-1.5 px-2 rounded-lg transition text-center ${
+                          provider === 'github'
+                            ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
+                            : 'text-neutral-600 dark:text-neutral-400'
+                        }`}
+                      >
+                        GitHub
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProvider('gitlab')}
+                        className={`py-1.5 px-2 rounded-lg transition text-center ${
+                          provider === 'gitlab'
+                            ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
+                            : 'text-neutral-600 dark:text-neutral-400'
+                        }`}
+                      >
+                        GitLab
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProvider('gitea')}
+                        className={`py-1.5 px-2 rounded-lg transition text-center ${
+                          provider === 'gitea'
+                            ? 'bg-white dark:bg-neutral-700 text-amber-700 dark:text-amber-300 shadow-sm'
+                            : 'text-neutral-600 dark:text-neutral-400'
+                        }`}
+                      >
+                        Gitea / Self-Host
+                      </button>
+                    </div>
+                  </div>
+
+                  {provider !== 'github' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
+                        Server URL / Host
+                      </label>
+                      <div className="relative">
+                        <Globe className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="url"
+                          value={customHost}
+                          onChange={(e) => setCustomHost(e.target.value)}
+                          placeholder={
+                            provider === 'gitlab'
+                              ? 'https://gitlab.com or https://git.company.com'
+                              : 'https://gitea.company.com'
+                          }
+                          className="w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      Personal Access Token
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="password"
+                        required
+                        value={tokenInput}
+                        onChange={(e) => setTokenInput(e.target.value)}
+                        placeholder="ghp_... or token"
+                        className="w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  {errorMsg && (
+                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-300 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-none" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isValidating || !tokenInput.trim()}
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold shadow transition"
+                  >
+                    {isValidating ? 'Validating...' : 'Connect with Token'}
+                  </button>
+                </form>
+              )}
 
               <button
                 type="button"
@@ -280,7 +284,7 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>Try Demo Repositories (No Sign-In Required)</span>
               </button>
-            </form>
+            </div>
           )}
         </div>
       </div>
