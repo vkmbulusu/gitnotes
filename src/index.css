@@ -1,0 +1,344 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --apple-yellow: #e5a93c;
+    --apple-yellow-hover: #d49420;
+    --apple-yellow-light: #fef7e6;
+    --apple-yellow-dark: #b87c14;
+    --apple-selection: #ffe08a;
+  }
+
+  .dark {
+    --apple-selection: #66480c;
+  }
+
+  ::selection {
+    background-color: var(--apple-selection);
+    color: inherit;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Apple style thin scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* TipTap Editor Styling - Apple Notes Look & Feel */
+.tiptap {
+  outline: none !important;
+  min-height: 100%;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.dark .tiptap p.is-editor-empty:first-child::before {
+  color: #6b7280;
+}
+
+.tiptap h1 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.tiptap h1:first-child {
+  margin-top: 0;
+}
+
+.tiptap h2 {
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.2rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.015em;
+}
+
+.tiptap h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.tiptap p {
+  line-height: 1.68;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
+}
+
+.tiptap ul:not([data-type="taskList"]) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.tiptap li {
+  margin-bottom: 0.25rem;
+  line-height: 1.6;
+}
+
+/* Apple Notes Checklists */
+ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2rem;
+  margin-bottom: 0.85rem;
+}
+
+ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.35rem;
+}
+
+ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.6rem;
+  user-select: none;
+  cursor: pointer;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9999px; /* circular like Apple Notes! */
+  margin-top: 0.25rem;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background-color: transparent;
+}
+
+.dark ul[data-type="taskList"] li > label input[type="checkbox"] {
+  border-color: #4b5563;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:hover {
+  border-color: #e5a93c;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background-color: #e5a93c;
+  border-color: #e5a93c;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:checked::before {
+  content: "";
+  width: 7px;
+  height: 4px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.dark ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: #6b7280;
+}
+
+/* Blockquotes */
+.tiptap blockquote {
+  border-left: 3.5px solid #e5a93c;
+  padding: 0.4rem 0.9rem;
+  margin: 0.8rem 0;
+  color: #4b5563;
+  font-style: italic;
+  background: rgba(229, 169, 60, 0.05);
+  border-radius: 0 6px 6px 0;
+}
+
+.dark .tiptap blockquote {
+  color: #9ca3af;
+  background: rgba(229, 169, 60, 0.1);
+}
+
+/* Code */
+.tiptap code {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-family: "SF Mono", Menlo, Monaco, monospace;
+  font-size: 0.88em;
+  color: #b45309;
+}
+
+.dark .tiptap code {
+  background-color: #26262a;
+  border-color: #38383e;
+  color: #fbbf24;
+}
+
+.tiptap pre {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0.85rem 0;
+  overflow-x: auto;
+  font-family: "SF Mono", Menlo, Monaco, monospace;
+  font-size: 0.9rem;
+}
+
+.dark .tiptap pre {
+  background-color: #1e1e22;
+  border-color: #2f2f35;
+}
+
+.tiptap pre code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* Tables */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .tiptap table {
+  border-color: #374151;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.dark .tiptap th,
+.dark .tiptap td {
+  border-color: #374151;
+}
+
+.tiptap th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+.dark .tiptap th {
+  background-color: #1f2937;
+}
+
+/* Horizontal Rule */
+.tiptap hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5rem 0;
+}
+
+.dark .tiptap hr {
+  border-top-color: #2e2e32;
+}
+
+/* Print Styles with Clean & Narrow Margins */
+@media print {
+  @page {
+    margin: 10mm 12mm 10mm 12mm !important;
+    size: auto;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app chrome, sidebars, buttons */
+  .no-print,
+  nav,
+  aside,
+  header.app-toolbar,
+  .segmented-control,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Show only the active print area */
+  .print-only-target {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-only-target h1,
+  .print-only-target h2,
+  .print-only-target h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .print-only-target pre,
+  .print-only-target table,
+  .print-only-target blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
