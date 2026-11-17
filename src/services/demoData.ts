@@ -1,8 +1,8 @@
 import { Notebook, Note, GitHubUser } from '../types';
 
 export const DEMO_USER: GitHubUser = {
-  login: 'apple-craftsman',
-  name: 'Apple Notes User',
+  login: 'gitnotes-author',
+  name: 'GitNotes Writer',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   bio: 'Writing notes in Markdown backed by Git repositories',
   publicRepos: 3,
@@ -13,68 +13,68 @@ export const INITIAL_NOTEBOOKS: Notebook[] = [
   {
     id: 'demo/personal-vault',
     name: 'personal-vault',
-    owner: 'apple-craftsman',
-    fullName: 'apple-craftsman/personal-vault',
+    owner: 'gitnotes-author',
+    fullName: 'gitnotes-author/personal-vault',
     defaultBranch: 'main',
     description: 'Personal notes, daily thoughts, and checklists',
     isPrivate: true,
     notesCount: 3,
     updatedAt: new Date().toISOString(),
-    htmlUrl: 'https://github.com/apple-craftsman/personal-vault',
+    htmlUrl: 'https://github.com/gitnotes-author/personal-vault',
   },
   {
     id: 'demo/engineering-handbook',
     name: 'engineering-handbook',
-    owner: 'apple-craftsman',
-    fullName: 'apple-craftsman/engineering-handbook',
+    owner: 'gitnotes-author',
+    fullName: 'gitnotes-author/engineering-handbook',
     defaultBranch: 'main',
     description: 'Architecture specifications, code snippets, and postmortems',
     isPrivate: false,
     notesCount: 2,
     updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    htmlUrl: 'https://github.com/apple-craftsman/engineering-handbook',
+    htmlUrl: 'https://github.com/gitnotes-author/engineering-handbook',
   },
   {
     id: 'demo/creative-ideas',
     name: 'creative-ideas',
-    owner: 'apple-craftsman',
-    fullName: 'apple-craftsman/creative-ideas',
+    owner: 'gitnotes-author',
+    fullName: 'gitnotes-author/creative-ideas',
     defaultBranch: 'main',
     description: 'Product concepts, sketches, and inspiration logs',
     isPrivate: false,
     notesCount: 1,
     updatedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-    htmlUrl: 'https://github.com/apple-craftsman/creative-ideas',
+    htmlUrl: 'https://github.com/gitnotes-author/creative-ideas',
   },
 ];
 
 export const INITIAL_NOTES: Record<string, Note[]> = {
   'demo/personal-vault': [
     {
-      id: 'welcome-apple-notes.md',
+      id: 'welcome-to-gitnotes.md',
       notebookId: 'demo/personal-vault',
-      path: 'welcome-apple-notes.md',
-      title: 'Welcome to Apple Notes for Git',
+      path: 'welcome-to-gitnotes.md',
+      title: 'Welcome to GitNotes',
       sha: '8f2a1b3c4d5e6f7a',
       updatedAt: new Date().toISOString(),
       createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
       lastCommittedAt: new Date().toISOString(),
       lastCommitSha: '8f2a1b3',
-      content: `# Welcome to Apple Notes for Git
+      content: `# Welcome to GitNotes (gitnotes.dev)
 
-This app brings the beloved **Apple Notes aesthetic** together with the freedom and safety of **Git repositories** and plain **Markdown files**.
+A clean, distraction-free writing experience combined with the freedom and safety of **Git repositories** and plain **Markdown files**.
 
-Every notebook is a real Git repository, and each note is a standard \`.md\` file directly synced to your GitHub account!
+Every notebook is a real Git repository, and each note is a standard \`.md\` file directly synced to your Git provider (GitHub, GitLab, Gitea, or self-hosted Git)!
 
 ---
 
 ### Key Features
 
-- [x] **Apple Notes 3-Panel Experience**: Familiar folders, note previews, and instant click & write editor.
+- [x] **3-Panel Notebook Experience**: Folders, live note previews, and instant click & write editor.
 - [x] **Dual Editor**: Seamlessly toggle between **Rich Text (WYSIWYG)** and **Raw Markdown** with the pill switch above.
 - [x] **Git-Backed Version Control**: Every change is versioned with Git commits and branch tracking.
 - [x] **Clean & Narrow Printable PDF Export**: Export any note to print or save as PDF with tight, professional margins.
-- [ ] Connect your GitHub account with a Personal Access Token or OAuth to sync your live repos!
+- [ ] Connect your Git account (GitHub, GitLab, Gitea, or self-hosted) to sync your live repos!
 
 ---
 
@@ -177,9 +177,9 @@ Editing must feel instant:
 - Offline-resilient local storage fallback
 
 ### 3. Clean Separation of Layers
-- View: Pure React with Tailwind & Apple Notes UI tokens
+- View: Pure React with Tailwind design tokens
 - State: Local reactive store
-- Sync: GitHub REST API v3
+- Sync: Git REST APIs / isomorphic git
 `,
     },
     {

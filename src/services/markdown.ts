@@ -55,7 +55,7 @@ export function extractTitle(markdown: string, fallback = 'New Note'): string {
 }
 
 /**
- * Generate a clean 2-line snippet preview for Apple Notes list,
+ * Generate a clean 2-line snippet preview for note list,
  * stripping markdown formatting syntax.
  */
 export function extractSnippet(markdown: string, titleToSkip?: string): string {

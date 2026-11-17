@@ -1,79 +1,105 @@
-# Chorus Notes — Apple Notes for Git
+# GitNotes (`gitnotes.dev`)
 
-A modern web application with the iconic **Apple Notes** look and feel, where **each notebook is a Git repository** and **each note is a Markdown file (`.md`)**, synced directly with **GitHub**.
+> **The Git & Markdown Notebook** — Every notebook is a Git repository, every note is a Markdown file (`.md`).
 
-![Apple Notes Git](https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/Markdown-Dark.svg)
+A clean, distraction-free web application combining the intuitive simplicity of modern desktop note-taking with the permanence, version control, and privacy of Git repositories.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
+[![Built with React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF.svg)](https://vitejs.dev)
+[![Deploy to Cloudflare](https://img.shields.io/badge/Deploy-Cloudflare%20Pages-F38020.svg)](https://pages.cloudflare.com)
 
 ---
 
 ## ✨ Features
 
-- **Apple Notes Aesthetic**:
-  - Classic 3-column macOS split view (Notebooks / Repositories ➔ Note Previews ➔ Active Editor).
-  - Authentic Apple Notes typography, warm yellow/gold accent styling (`#e5a93c`), frosted glassmorphism, and macOS window controls.
-  - Dark mode and light mode with seamless switching.
+- **Clean Minimalist 3-Pane Layout**:
+  - Notebooks (Git Repositories) ➔ Note List with date stamps & previews ➔ Instant Click & Write Editor.
+  - Native window controls, frosted glassmorphic sidebars, and dark/light mode toggle.
   - Interactive checklists that turn into completed tasks with custom circular checkmarks.
 
 - **Dual Editor with Instant Toggle**:
   - **✏️ Rich Text Mode**: Full WYSIWYG editor powered by TipTap (Headings H1-H3, Bold, Italic, Strikethrough, Bullet Lists, Numbered Lists, Task Lists, Blockquotes, Code Blocks, Tables, Dividers).
-  - **⚡️ Markdown Mode**: Clean raw Markdown editor with line numbers, live word and character counters, and markdown snippet helpers.
-  - Seamless two-way bidirectional sync with zero data loss when toggling.
+  - **⚡️ Markdown Mode**: Clean raw Markdown editor with line numbers, live word and character counters, and quick markdown insertion helpers.
+  - Seamless bidirectional synchronization between Markdown and Rich Text with zero data loss.
 
-- **Git & GitHub Backed**:
-  - **Every Notebook is a Git Repository**: Switch between your GitHub repositories as separate notebooks.
-  - **Every Note is a `.md` File**: Standard plain-text Markdown files committed to your Git tree.
-  - **Instant Zero-Setup Demo Mode**: Pre-loaded with sample notebooks and notes so you can explore immediately without entering credentials.
-  - **GitHub Authentication**: Connect with a GitHub Personal Access Token (`repo` scope) or GitHub account.
-  - **Git Operations**:
-    - Automatic note file creation and deletion commits.
-    - Status pill showing uncommitted changes, commit SHAs, and sync timestamps.
-    - Interactive **Git Commit History** viewer for any note file.
-    - Create new Git repository notebooks directly from the app (public or private).
+- **Git-Backed by Design**:
+  - **Every Notebook is a Git Repository**: Works with GitHub, GitLab, Gitea, or self-hosted Git servers.
+  - **Every Note is a Plain `.md` File**: Standard plain-text Markdown committed to your Git tree.
+  - **Zero-Setup Demo Mode**: Pre-loaded with realistic sample notebooks so anyone can explore immediately without entering credentials.
+  - **Commit History**: Inspect commit SHAs, author info, and timestamps for any note.
+  - **New Notebook Repository**: Create new Git repositories (public or private) directly from the app.
 
 - **Clean & Narrow Printable PDF Export**:
-  - Clean publication-ready styling specifically tuned for printing or saving as PDF.
-  - **Narrow Margins (10mm)** preset that maximizes readable space while preserving clean document borders.
+  - Publication-ready printable layout tuned with `@page { margin: 10mm 12mm; }`.
+  - Margin presets: Clean & Narrow (10mm), Ultra-Compact (6mm), Standard (18mm).
   - Two export workflows:
-    - **Print / Save via Browser**: Native browser print window with `@page { margin: 10mm 12mm; }` for vector-sharp PDF generation.
-    - **Download PDF File**: Client-side PDF generation via `html2pdf.js` with customizable headers, dates, and paper formats (A4 / US Letter).
+    - **Native Browser Print**: Vector-sharp PDF saving via browser print engine.
+    - **Direct Download**: 1-click `.pdf` download with custom headers, dates, and A4/US Letter sizing.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Start the Development Server
-
-The application runs locally using Vite:
+### Local Development
 
 ```bash
-# If not already running:
+# 1. Install dependencies
+npm install
+
+# 2. Run local dev server
 npm run dev
+
+# 3. Build for production
+npm run build
 ```
 
-Open your browser at:
-👉 **[http://localhost:3000](http://localhost:3000)**
-
-### 2. Connect Your GitHub Account
-
-1. Click **Sign in with GitHub** or your profile card in the bottom-left corner of the sidebar.
-2. Enter a GitHub Personal Access Token (PAT) with `repo` scope.
-   - *Quick link provided in the dialog: `https://github.com/settings/tokens/new?scopes=repo`*
-3. Or click **Try Demo Repositories** to use the built-in offline Git simulation.
-
-### 3. Click and Write
-
-- Click any note from the middle list to begin editing immediately.
-- Use the segmented pill switch in the top toolbar to toggle between **Rich Text** and **Markdown**.
-- Click the **Export PDF** button in the top toolbar to preview and print or download with clean, narrow margins.
+Open your browser at **http://localhost:3000**.
 
 ---
 
-## 🛠 Tech Stack
+## ☁️ Deploying to Cloudflare Pages (`gitnotes.dev`)
 
-- **Framework**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS with custom Apple Notes color tokens and dark mode support
-- **Rich Text Editor**: TipTap (StarterKit, TaskList, TaskItem, Table, Highlight, Link)
-- **Markdown Engines**: `marked` (Markdown ➔ HTML) + `turndown` (HTML ➔ Markdown)
-- **PDF Generation**: Native `@page` print stylesheet + `html2pdf.js`
-- **Icons**: Lucide React (SF Symbols style)
-- **API**: GitHub REST API v3 with Base64 UTF-8 serialization
+Because GitNotes is a 100% client-side web application without a backend database, it can be deployed on Cloudflare Pages in less than 2 minutes:
+
+### Method 1: Git Integration (Recommended)
+1. Push this project to your GitHub/GitLab account.
+2. In the [Cloudflare Dashboard](https://dash.cloudflare.com):
+   - Go to **Workers & Pages** ➔ **Create application** ➔ **Pages** ➔ **Connect to Git**.
+   - Select your repository.
+   - Build settings:
+     - **Framework preset**: `Vite`
+     - **Build command**: `npm run build`
+     - **Build output directory**: `dist`
+3. Click **Save and Deploy**.
+4. Go to **Custom domains** ➔ Enter `gitnotes.dev`.
+
+### Method 2: Direct Wrangler CLI Deploy
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name gitnotes
+```
+
+---
+
+## 📱 Mobile App (iOS & Android)
+
+GitNotes is ready to be packaged as a native mobile application using **Capacitor**:
+
+```bash
+# Add native platforms
+npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
+npx cap init GitNotes dev.gitnotes.app --web-dir dist
+npx cap add ios
+npx cap add android
+
+# Build and sync
+npm run build
+npx cap sync
+```
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.

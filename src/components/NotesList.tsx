@@ -155,7 +155,7 @@ export const NotesList: React.FC<NotesListProps> = ({
                   </span>
                 </div>
 
-                {/* Apple Notes Snippet (2-line preview) */}
+                {/* 2-line snippet preview */}
                 <p
                   className={`text-[11px] line-clamp-2 leading-relaxed ${
                     isSelected

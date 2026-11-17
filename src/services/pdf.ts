@@ -93,7 +93,7 @@ export function buildPrintableHtml(
       </main>
 
       <footer class="document-footer mt-8 pt-3 border-t border-neutral-200 flex justify-between text-[10px] text-neutral-400 font-mono" style="break-inside: avoid;">
-        <span>Apple Notes (Git Markdown)</span>
+        <span>GitNotes (gitnotes.dev)</span>
         <span>${note.path}</span>
       </footer>
     </div>
@@ -204,7 +204,7 @@ export function printNoteClean(
             box-sizing: border-box;
           }
           body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #1a1a1a;
             background: #ffffff;
             margin: 0;

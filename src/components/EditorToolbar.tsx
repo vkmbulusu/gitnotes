@@ -58,7 +58,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         )}
       </div>
 
-      {/* Middle: Apple Notes Segmented Toggle Switch (Rich Text <-> Markdown) */}
+      {/* Middle: Segmented Toggle Switch (Rich Text <-> Markdown) */}
       <div className="segmented-control flex items-center bg-neutral-200/70 dark:bg-neutral-800/80 p-0.5 rounded-lg border border-neutral-300/40 dark:border-neutral-700/50 shadow-inner">
         <button
           type="button"

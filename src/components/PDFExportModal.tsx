@@ -81,7 +81,7 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
                   {
                     id: 'narrow',
                     title: 'Clean & Narrow (10mm)',
-                    desc: 'Optimal Apple Notes compact layout',
+                    desc: 'Clean publication-ready compact layout',
                     recommended: true,
                   },
                   {

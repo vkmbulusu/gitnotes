@@ -449,14 +449,14 @@ export function App() {
       const newNb: Notebook = {
         id: `demo/${name}`,
         name,
-        owner: 'apple-craftsman',
-        fullName: `apple-craftsman/${name}`,
+        owner: 'gitnotes-author',
+        fullName: `gitnotes-author/${name}`,
         defaultBranch: 'main',
         description: description || 'New notebook repository',
         isPrivate,
         notesCount: 1,
         updatedAt: new Date().toISOString(),
-        htmlUrl: `https://github.com/apple-craftsman/${name}`,
+        htmlUrl: `https://github.com/gitnotes-author/${name}`,
       };
 
       const initialNote: Note = {

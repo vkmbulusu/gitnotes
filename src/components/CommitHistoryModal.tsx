@@ -30,14 +30,14 @@ export const CommitHistoryModal: React.FC<CommitHistoryModalProps> = ({
         {
           sha: note.sha || '8f2a1b3c4d5e',
           message: `Update note: ${note.title}`,
-          author: 'apple-craftsman',
+          author: 'gitnotes-author',
           date: note.updatedAt || new Date().toISOString(),
           htmlUrl: `https://github.com/${notebook.fullName}/commit/${note.sha}`,
         },
         {
           sha: '1b2c3d4e5f6a',
           message: `Initial commit: ${note.path}`,
-          author: 'apple-craftsman',
+          author: 'gitnotes-author',
           date: note.createdAt || new Date(Date.now() - 3600000 * 24).toISOString(),
           htmlUrl: `https://github.com/${notebook.fullName}/commit/1b2c3d4`,
         },

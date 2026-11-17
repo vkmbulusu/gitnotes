@@ -1,5 +1,7 @@
 {
-  "name": "chorus-notes",
+  "name": "gitnotes",
+  "description": "Apple Notes for Git — Every notebook is a Git repo, every note is a Markdown file",
+  "homepage": "https://gitnotes.dev",
   "private": true,
   "version": "1.0.0",
   "type": "module",

@@ -102,7 +102,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-apple-editorDark">
-      {/* Apple Notes Floating Formatting Bar */}
+      {/* Floating Formatting Bar */}
       <div className="flex-none px-4 py-2 border-b border-apple-borderLight dark:border-apple-borderDark bg-neutral-50/70 dark:bg-apple-sidebarDark/80 backdrop-blur-md flex items-center gap-1 flex-wrap select-none">
         <button
           type="button"

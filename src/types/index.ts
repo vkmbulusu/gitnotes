@@ -2,6 +2,8 @@ export type EditorMode = 'richtext' | 'markdown';
 
 export type SyncStatus = 'synced' | 'saving' | 'dirty' | 'error';
 
+export type GitProvider = 'github' | 'gitlab' | 'gitea' | 'selfhosted';
+
 export interface GitHubUser {
   login: string;
   name: string | null;
@@ -10,6 +12,8 @@ export interface GitHubUser {
   publicRepos: number;
   totalPrivateRepos?: number;
   isDemo?: boolean;
+  provider?: GitProvider;
+  customHost?: string;
 }
 
 export interface Notebook {

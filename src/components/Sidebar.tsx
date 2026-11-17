@@ -47,13 +47,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="w-64 flex-none h-full flex flex-col bg-apple-sidebarLight dark:bg-apple-sidebarDark border-r border-apple-borderLight dark:border-apple-borderDark select-none">
       {/* Mac Window Traffic Lights & App Title */}
       <div className="flex-none px-4 pt-3.5 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* macOS window controls */}
           <div className="flex items-center gap-1.5 group">
             <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer" />
             <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer" />
             <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer" />
           </div>
+          <span className="text-xs font-bold text-neutral-800 dark:text-neutral-100 tracking-tight flex items-center gap-1">
+            <span className="text-amber-500">Git</span>Notes
+          </span>
         </div>
 
         <button
@@ -178,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             <div className="truncate">
               <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">
-                {currentUser?.name || currentUser?.login || 'Sign in with GitHub'}
+                {currentUser?.name || currentUser?.login || 'Connect Git Provider'}
               </div>
               <div className="text-[10px] text-neutral-400 flex items-center gap-1">
                 {currentUser?.isDemo ? (
@@ -191,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     @{currentUser.login}
                   </span>
                 ) : (
-                  <span>Click to connect</span>
+                  <span>GitHub, GitLab, Self-Hosted</span>
                 )}
               </div>
             </div>

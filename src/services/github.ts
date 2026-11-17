@@ -115,7 +115,7 @@ export async function createRepository(
     method: 'POST',
     body: JSON.stringify({
       name,
-      description: description || 'Notes repository managed by Apple Notes Git',
+      description: description || 'Notes repository managed by GitNotes (gitnotes.dev)',
       private: isPrivate,
       auto_init: true, // creates initial commit and main branch
     }),
