@@ -58,27 +58,18 @@ Open your browser at **http://localhost:3000**.
 
 ---
 
-## ☁️ Deploying to Cloudflare Pages (`gitnotes.dev`)
+## ☁️ Deploying to Cloudflare Workers (`gitnotes.dev`)
 
-Because GitNotes is a 100% client-side web application without a backend database, it can be deployed on Cloudflare Pages in less than 2 minutes:
+GitNotes serves its Vite build as static assets, with a small Worker handling GitHub OAuth code exchange.
 
-### Method 1: Git Integration (Recommended)
-1. Push this project to your GitHub/GitLab account.
-2. In the [Cloudflare Dashboard](https://dash.cloudflare.com):
-   - Go to **Workers & Pages** ➔ **Create application** ➔ **Pages** ➔ **Connect to Git**.
-   - Select your repository.
-   - Build settings:
-     - **Framework preset**: `Vite`
-     - **Build command**: `npm run build`
-     - **Build output directory**: `dist`
-3. Click **Save and Deploy**.
-4. Go to **Custom domains** ➔ Enter `gitnotes.dev`.
-
-### Method 2: Direct Wrangler CLI Deploy
+### Deploy with Wrangler
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name gitnotes
+npx wrangler deploy
 ```
+
+### GitHub OAuth configuration
+This project must be deployed as a Worker with Static Assets using the checked-in `wrangler.jsonc` (including `main` and the `ASSETS` binding), not as an assets-only Worker or a Pages project. In the Worker settings, add `GITHUB_CLIENT_SECRET` under **Settings → Variables and Secrets → Secrets**. Never put the secret in source code or a `VITE_` variable. The GitHub OAuth App's callback URL must be `https://gitnotes.dev/api/auth/callback`. The client ID is public; the client secret must remain server-side.
 
 ---
 

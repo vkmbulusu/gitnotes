@@ -11,7 +11,9 @@ import {
   Trash2,
   ChevronLeft,
   PanelLeft,
+  Github,
 } from 'lucide-react';
+import { GitHubUser } from '../types';
 
 interface EditorToolbarProps {
   note: Note;
@@ -26,6 +28,8 @@ interface EditorToolbarProps {
   onBackToNotes?: () => void;
   onToggleSidebar?: () => void;
   isSidebarVisible?: boolean;
+  currentUser?: GitHubUser | null;
+  onOpenAuthModal?: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -41,6 +45,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onBackToNotes,
   onToggleSidebar,
   isSidebarVisible,
+  currentUser,
+  onOpenAuthModal,
 }) => {
   return (
     <header className="app-toolbar flex-none px-3 sm:px-6 py-2.5 border-b border-apple-borderLight dark:border-apple-borderDark bg-white/80 dark:bg-apple-sidebarDark/80 backdrop-blur-md flex items-center justify-between gap-2 select-none">
@@ -114,6 +120,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
       {/* Right: Actions (Git Commit, PDF Export, History) */}
       <div className="flex items-center gap-1 sm:gap-2 flex-none">
+        {onOpenAuthModal && (
+          <button
+            type="button"
+            onClick={onOpenAuthModal}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 transition"
+            title={currentUser && !currentUser.isDemo ? `Connected as ${currentUser.login}` : 'Connect GitHub'}
+            aria-label={currentUser && !currentUser.isDemo ? `GitHub connected as ${currentUser.login}` : 'Sign in with GitHub'}
+          >
+            <Github className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{currentUser && !currentUser.isDemo ? 'GitHub' : 'Sign in'}</span>
+          </button>
+        )}
+
         {/* Git Sync / Commit Status Button */}
         {note.isDirty ? (
           <button

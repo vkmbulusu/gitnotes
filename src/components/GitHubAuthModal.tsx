@@ -45,7 +45,9 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
   const handleOAuthLogin = () => {
     const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/callback`);
     const scope = encodeURIComponent('repo,read:user');
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=${scope}&redirect_uri=${redirectUri}`;
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('gitnotes_oauth_state', state);
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=${scope}&redirect_uri=${redirectUri}&state=${encodeURIComponent(state)}`;
   };
 
   const handleVerify = async (e: React.FormEvent) => {

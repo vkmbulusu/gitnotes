@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Note, Notebook, EditorMode } from '../types';
+import { Note, Notebook, EditorMode, GitHubUser } from '../types';
 import { EditorToolbar } from './EditorToolbar';
 import { RichTextEditor } from './RichTextEditor';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -19,6 +19,8 @@ interface EditorProps {
   onBackToNotes?: () => void;
   onToggleSidebar?: () => void;
   isSidebarVisible?: boolean;
+  currentUser?: GitHubUser | null;
+  onOpenAuthModal?: () => void;
 }
 
 export const Editor: React.FC<EditorProps> = ({
@@ -33,6 +35,8 @@ export const Editor: React.FC<EditorProps> = ({
   onBackToNotes,
   onToggleSidebar,
   isSidebarVisible,
+  currentUser,
+  onOpenAuthModal,
 }) => {
   const [mode, setMode] = useState<EditorMode>('richtext');
   const [showPDFModal, setShowPDFModal] = useState(false);
@@ -90,6 +94,8 @@ export const Editor: React.FC<EditorProps> = ({
         onBackToNotes={onBackToNotes}
         onToggleSidebar={onToggleSidebar}
         isSidebarVisible={isSidebarVisible}
+        currentUser={currentUser}
+        onOpenAuthModal={onOpenAuthModal}
       />
 
       {/* Main Click & Write Editor Area */}

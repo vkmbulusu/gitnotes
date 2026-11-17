@@ -75,40 +75,45 @@ export function App() {
   // Check for OAuth tokens or callbacks in URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ghToken = params.get('gh_token');
     const authCode = params.get('code');
+    const authState = params.get('state');
     const authError = params.get('auth_error');
+
+    if (authCode || authError) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     if (authError) {
       alert(`GitHub authentication error: ${authError}`);
-      window.history.replaceState({}, '', window.location.pathname);
-      return;
-    }
-
-    if (ghToken) {
-      window.history.replaceState({}, '', window.location.pathname);
-      verifyToken(ghToken).then((user) => {
-        handleLoginSuccess(ghToken, user);
-      });
       return;
     }
 
     if (authCode) {
-      window.history.replaceState({}, '', window.location.pathname);
-      fetch('/api/auth/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: authCode }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.access_token) {
-            verifyToken(data.access_token).then((user) => {
-              handleLoginSuccess(data.access_token, user);
-            });
+      const expectedState = sessionStorage.getItem('gitnotes_oauth_state');
+      sessionStorage.removeItem('gitnotes_oauth_state');
+      if (!expectedState || !authState || expectedState !== authState) {
+        alert('GitHub sign-in could not be verified. Please try again.');
+        return;
+      }
+
+      (async () => {
+        try {
+          const response = await fetch('/api/auth/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: authCode }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.access_token) {
+            throw new Error(data.error || 'GitHub could not complete sign-in.');
           }
-        })
-        .catch((err) => console.error('OAuth code exchange failed:', err));
+          const user = await verifyToken(data.access_token);
+          handleLoginSuccess(data.access_token, user);
+        } catch (err: any) {
+          console.error('OAuth sign-in failed:', err);
+          alert(`GitHub sign-in failed: ${err.message || 'Please try again.'}`);
+        }
+      })();
     }
   }, []);
 
@@ -618,6 +623,8 @@ export function App() {
           onBackToNotes={() => setMobileView('notes')}
           onToggleSidebar={toggleSidebar}
           isSidebarVisible={isSidebarVisible}
+          currentUser={currentUser}
+          onOpenAuthModal={() => setShowAuthModal(true)}
         />
       </div>
 
