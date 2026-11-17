@@ -6,9 +6,9 @@ import {
   Search,
   Trash2,
   GitCommit,
-  Check,
-  AlertCircle,
   FileText,
+  ChevronLeft,
+  PanelLeft,
 } from 'lucide-react';
 
 interface NotesListProps {
@@ -18,6 +18,9 @@ interface NotesListProps {
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
   onDeleteNote: (note: Note) => void;
+  onBackToNotebooks?: () => void;
+  onToggleSidebar?: () => void;
+  isSidebarVisible?: boolean;
 }
 
 export const NotesList: React.FC<NotesListProps> = ({
@@ -27,6 +30,9 @@ export const NotesList: React.FC<NotesListProps> = ({
   onSelectNote,
   onCreateNote,
   onDeleteNote,
+  onBackToNotebooks,
+  onToggleSidebar,
+  isSidebarVisible,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -67,22 +73,48 @@ export const NotesList: React.FC<NotesListProps> = ({
   };
 
   return (
-    <div className="w-80 flex-none h-full flex flex-col bg-apple-listLight dark:bg-apple-listDark border-r border-apple-borderLight dark:border-apple-borderDark select-none">
-      {/* Header with Notebook title & New Note Action */}
-      <div className="flex-none px-4 pt-3.5 pb-2 flex items-center justify-between">
-        <div className="min-w-0">
-          <h2 className="text-sm font-bold text-neutral-900 dark:text-white truncate">
-            {activeNotebook?.name || 'Notes'}
-          </h2>
-          <p className="text-[11px] text-neutral-400">
-            {notes.length} {notes.length === 1 ? 'note' : 'notes'} (.md)
-          </p>
+    <div className="w-full md:w-80 flex-none h-full flex flex-col bg-apple-listLight dark:bg-apple-listDark border-r border-apple-borderLight dark:border-apple-borderDark select-none">
+      {/* Header with Notebook title, Back button & New Note Action */}
+      <div className="flex-none px-4 pt-3.5 pb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Mobile Back Button to Notebooks */}
+          {onBackToNotebooks && (
+            <button
+              type="button"
+              onClick={onBackToNotebooks}
+              className="md:hidden p-1 -ml-1 text-amber-600 dark:text-amber-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 rounded-lg flex items-center gap-0.5 text-xs font-semibold"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Folders</span>
+            </button>
+          )}
+
+          {/* Desktop Toggle Sidebar Button (when sidebar is hidden) */}
+          {!isSidebarVisible && onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="hidden md:flex p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-white rounded-lg transition"
+              title="Show Sidebar"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-neutral-900 dark:text-white truncate">
+              {activeNotebook?.name || 'Notes'}
+            </h2>
+            <p className="text-[11px] text-neutral-400">
+              {notes.length} {notes.length === 1 ? 'note' : 'notes'} (.md)
+            </p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={onCreateNote}
-          className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white shadow-sm transition"
+          className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white shadow-sm transition flex-none"
           title="New Note (Create Markdown File)"
         >
           <PenSquare className="w-4 h-4" />

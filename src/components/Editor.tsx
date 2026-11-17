@@ -5,7 +5,7 @@ import { RichTextEditor } from './RichTextEditor';
 import { MarkdownEditor } from './MarkdownEditor';
 import { PDFExportModal } from './PDFExportModal';
 import { CommitHistoryModal } from './CommitHistoryModal';
-import { PenSquare } from 'lucide-react';
+import { PenSquare, ChevronLeft } from 'lucide-react';
 
 interface EditorProps {
   note: Note | null;
@@ -16,6 +16,9 @@ interface EditorProps {
   onDeleteNote: () => void;
   onCreateNote: () => void;
   isSaving: boolean;
+  onBackToNotes?: () => void;
+  onToggleSidebar?: () => void;
+  isSidebarVisible?: boolean;
 }
 
 export const Editor: React.FC<EditorProps> = ({
@@ -27,6 +30,9 @@ export const Editor: React.FC<EditorProps> = ({
   onDeleteNote,
   onCreateNote,
   isSaving,
+  onBackToNotes,
+  onToggleSidebar,
+  isSidebarVisible,
 }) => {
   const [mode, setMode] = useState<EditorMode>('richtext');
   const [showPDFModal, setShowPDFModal] = useState(false);
@@ -35,6 +41,18 @@ export const Editor: React.FC<EditorProps> = ({
   if (!note || !notebook) {
     return (
       <div className="flex-1 h-full flex flex-col items-center justify-center bg-apple-editorLight dark:bg-apple-editorDark text-neutral-400 select-none p-6">
+        {onBackToNotes && (
+          <div className="md:hidden absolute top-4 left-4">
+            <button
+              onClick={onBackToNotes}
+              className="p-2 text-amber-600 dark:text-amber-400 flex items-center gap-1 text-xs font-semibold rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Notes</span>
+            </button>
+          </div>
+        )}
+
         <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-500 mb-4 shadow-sm">
           <PenSquare className="w-8 h-8" />
         </div>
@@ -69,6 +87,9 @@ export const Editor: React.FC<EditorProps> = ({
         onOpenCommitHistory={() => setShowCommitHistory(true)}
         onDeleteNote={onDeleteNote}
         isSaving={isSaving}
+        onBackToNotes={onBackToNotes}
+        onToggleSidebar={onToggleSidebar}
+        isSidebarVisible={isSidebarVisible}
       />
 
       {/* Main Click & Write Editor Area */}

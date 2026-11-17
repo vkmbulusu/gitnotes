@@ -10,7 +10,7 @@ import {
   Sun,
   Moon,
   Sparkles,
-  ExternalLink,
+  PanelLeftClose,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,7 +22,6 @@ interface SidebarProps {
   currentUser: GitHubUser | null;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
@@ -35,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   theme,
   onToggleTheme,
+  onToggleCollapse,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,8 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <aside className="w-64 flex-none h-full flex flex-col bg-apple-sidebarLight dark:bg-apple-sidebarDark border-r border-apple-borderLight dark:border-apple-borderDark select-none">
-      {/* Mac Window Traffic Lights & App Title */}
+    <aside className="w-full md:w-64 flex-none h-full flex flex-col bg-apple-sidebarLight dark:bg-apple-sidebarDark border-r border-apple-borderLight dark:border-apple-borderDark select-none">
+      {/* Mac Window Traffic Lights, App Title & Sidebar Toggle */}
       <div className="flex-none px-4 pt-3.5 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           {/* macOS window controls */}
@@ -59,17 +59,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
-        <button
-          onClick={onToggleTheme}
-          className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 transition"
-          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-        >
-          {theme === 'light' ? (
-            <Moon className="w-3.5 h-3.5" />
-          ) : (
-            <Sun className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleTheme}
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 transition"
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-3.5 h-3.5" />
+            ) : (
+              <Sun className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 transition"
+              title="Toggle Sidebar"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Notebooks Section Header */}

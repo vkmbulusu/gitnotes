@@ -11,13 +11,10 @@ export const DEFAULT_PDF_OPTIONS: PDFExportOptions = {
   pageSize: 'a4',
 };
 
-/**
- * Convert margin preset to mm dimensions [top, left, bottom, right]
- */
 export function getMarginValues(preset: PDFExportOptions['margin']): [number, number, number, number] {
   switch (preset) {
     case 'narrow':
-      return [10, 12, 12, 12]; // Clean & narrow printable margins
+      return [10, 12, 10, 12]; // Clean & narrow printable margins in mm
     case 'compact':
       return [6, 8, 8, 8];
     case 'normal':
@@ -26,9 +23,6 @@ export function getMarginValues(preset: PDFExportOptions['margin']): [number, nu
   }
 }
 
-/**
- * Format date for document header
- */
 function formatHeaderDate(isoDate?: string): string {
   const d = isoDate ? new Date(isoDate) : new Date();
   return d.toLocaleDateString('en-US', {
@@ -41,58 +35,69 @@ function formatHeaderDate(isoDate?: string): string {
 }
 
 /**
- * Generate a standalone clean printable HTML string with narrow margins
+ * Returns self-contained styled HTML with all fonts, colors, and layouts baked in.
+ * This guarantees zero blank renders regardless of external stylesheets.
  */
 export function buildPrintableHtml(
   note: Note,
   notebook?: Notebook,
   options: PDFExportOptions = DEFAULT_PDF_OPTIONS
 ): string {
-  const [top, left, bottom, right] = getMarginValues(options.margin);
   const htmlContent = markdownToHtml(note.content);
-
-  const fontSizeClass =
-    options.fontSize === 'small'
-      ? 'text-[13px] leading-relaxed'
-      : options.fontSize === 'large'
-      ? 'text-[16px] leading-relaxed'
-      : 'text-[14.5px] leading-relaxed';
+  const fontSize = options.fontSize === 'small' ? '13px' : options.fontSize === 'large' ? '16px' : '14.5px';
 
   return `
-    <div class="printable-document font-sans text-neutral-900 bg-white" style="max-width: 100%; margin: 0 auto; padding: 4px;">
+    <div class="printable-document" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: #ffffff; width: 100%; box-sizing: border-box; padding: 4px; font-size: ${fontSize}; line-height: 1.65;">
+      <style>
+        .printable-document h1, .printable-document h2, .printable-document h3 { color: #111827; font-weight: 700; margin-top: 1.2em; margin-bottom: 0.4em; break-after: avoid; }
+        .printable-document h1 { font-size: 1.8em; border-bottom: 1.5px solid #e5e7eb; padding-bottom: 6px; }
+        .printable-document h2 { font-size: 1.4em; border-bottom: 1px solid #f3f4f6; padding-bottom: 4px; }
+        .printable-document h3 { font-size: 1.15em; }
+        .printable-document p { margin-top: 0; margin-bottom: 0.85em; }
+        .printable-document ul, .printable-document ol { padding-left: 1.5em; margin-top: 0; margin-bottom: 0.85em; }
+        .printable-document li { margin-bottom: 0.25em; }
+        .printable-document blockquote { border-left: 3.5px solid #e5a93c; background-color: #fefce8; padding: 8px 14px; margin: 1em 0; color: #4b5563; font-style: italic; border-radius: 0 4px 4px 0; }
+        .printable-document code { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 0.88em; background-color: #f3f4f6; padding: 2px 5px; border-radius: 4px; color: #b45309; }
+        .printable-document pre { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
+        .printable-document pre code { background-color: transparent; padding: 0; color: #1e293b; }
+        .printable-document table { width: 100%; border-collapse: collapse; margin: 1em 0; break-inside: avoid; }
+        .printable-document th, .printable-document td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+        .printable-document th { background-color: #f9fafb; font-weight: 600; }
+        .printable-document hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
+        .printable-document input[type="checkbox"] { margin-right: 6px; vertical-align: middle; accent-color: #e5a93c; }
+      </style>
+
       ${
         options.includeHeader
           ? `
-        <header class="document-header pb-4 mb-5 border-b border-neutral-300" style="break-inside: avoid;">
-          <div class="flex items-center justify-between text-xs text-neutral-500 mb-1">
+        <header style="border-bottom: 1.5px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 18px; break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #6b7280; margin-bottom: 6px;">
             ${
               options.includeNotebookTag && notebook
-                ? `<span class="notebook-badge uppercase font-medium tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                ? `<span style="font-weight: 600; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;">
                     📂 ${notebook.name}
                   </span>`
                 : '<span></span>'
             }
             ${
               options.includeDate
-                ? `<time class="print-date text-neutral-400 font-mono text-[11px]">${formatHeaderDate(
-                    note.updatedAt
-                  )}</time>`
+                ? `<time style="font-family: monospace; color: #9ca3af;">${formatHeaderDate(note.updatedAt)}</time>`
                 : ''
             }
           </div>
-          <h1 class="document-title text-2xl font-bold text-neutral-900 tracking-tight mt-1 mb-0">${
-            note.title || 'Untitled Note'
-          }</h1>
+          <h1 style="margin: 4px 0 0 0; font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -0.02em; border: none; padding: 0;">
+            ${note.title || 'Untitled Note'}
+          </h1>
         </header>
       `
           : ''
       }
 
-      <main class="printable-body prose prose-neutral max-w-none ${fontSizeClass}">
+      <main>
         ${htmlContent}
       </main>
 
-      <footer class="document-footer mt-8 pt-3 border-t border-neutral-200 flex justify-between text-[10px] text-neutral-400 font-mono" style="break-inside: avoid;">
+      <footer style="margin-top: 32px; padding-top: 10px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #9ca3af; font-family: monospace; break-inside: avoid;">
         <span>GitNotes (gitnotes.dev)</span>
         <span>${note.path}</span>
       </footer>
@@ -101,28 +106,15 @@ export function buildPrintableHtml(
 }
 
 /**
- * Export note to downloadable PDF file using html2pdf.js with narrow margins
+ * Export note to downloadable PDF using html2pdf.js.
+ * Mounts in a visible-to-renderer container to prevent html2canvas blank page clipping.
  */
 export async function exportNoteToPDF(
   note: Note,
   notebook?: Notebook,
-  options: PDFExportOptions = DEFAULT_PDF_OPTIONS
+  options: PDFExportOptions = DEFAULT_PDF_OPTIONS,
+  sourceElement?: HTMLElement | null
 ): Promise<void> {
-  const container = document.createElement('div');
-  container.className = 'pdf-export-container';
-  container.innerHTML = buildPrintableHtml(note, notebook, options);
-
-  // Apply printing style adjustments for the offscreen rendering
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = options.pageSize === 'letter' ? '216mm' : '210mm';
-  container.style.backgroundColor = '#ffffff';
-  container.style.color = '#111827';
-  container.style.zIndex = '-9999';
-
-  document.body.appendChild(container);
-
   const [top, left, bottom, right] = getMarginValues(options.margin);
   const cleanFilename = (note.title || 'Note')
     .toLowerCase()
@@ -132,13 +124,14 @@ export async function exportNoteToPDF(
 
   const opt = {
     margin: [top, left, bottom, right],
-    filename: `${cleanFilename || 'notes'}.pdf`,
+    filename: `${cleanFilename || 'gitnote'}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
       scale: 2,
       useCORS: true,
       letterRendering: true,
       logging: false,
+      backgroundColor: '#ffffff',
     },
     jsPDF: {
       unit: 'mm',
@@ -152,190 +145,91 @@ export async function exportNoteToPDF(
     },
   };
 
+  // If source element from modal preview is passed and has content, use it directly!
+  if (sourceElement && sourceElement.children.length > 0) {
+    await html2pdf().set(opt).from(sourceElement).save();
+    return;
+  }
+
+  // Otherwise, construct clean container in DOM with positive coordinates
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'fixed';
+  wrapper.style.top = '0';
+  wrapper.style.left = '0';
+  wrapper.style.width = options.pageSize === 'letter' ? '816px' : '794px';
+  wrapper.style.backgroundColor = '#ffffff';
+  wrapper.style.zIndex = '999999';
+  wrapper.style.opacity = '0.01'; // Invisible to user but fully rendered by browser engine
+  wrapper.style.pointerEvents = 'none';
+  wrapper.innerHTML = buildPrintableHtml(note, notebook, options);
+
+  document.body.appendChild(wrapper);
+
   try {
-    await html2pdf().set(opt).from(container).save();
+    // Small delay to ensure browser layout engine calculates all heights
+    await new Promise((r) => setTimeout(r, 60));
+    await html2pdf().set(opt).from(wrapper).save();
   } finally {
-    document.body.removeChild(container);
+    document.body.removeChild(wrapper);
   }
 }
 
 /**
- * Trigger native print dialog with clean and narrow margins layout.
- * This utilizes the browser's native print engine which yields vector-sharp PDFs on Mac.
+ * Clean native print dialog. Injects a full-page print view and triggers native print.
  */
 export function printNoteClean(
   note: Note,
   notebook?: Notebook,
   options: PDFExportOptions = DEFAULT_PDF_OPTIONS
 ): void {
-  // Create an iframe to cleanly isolate print styles without UI clutter
-  const printFrame = document.createElement('iframe');
-  printFrame.style.position = 'fixed';
-  printFrame.style.right = '0';
-  printFrame.style.bottom = '0';
-  printFrame.style.width = '0';
-  printFrame.style.height = '0';
-  printFrame.style.border = '0';
-
-  document.body.appendChild(printFrame);
-
   const [top, left, bottom, right] = getMarginValues(options.margin);
   const printableHtml = buildPrintableHtml(note, notebook, options);
 
-  const doc = printFrame.contentWindow?.document;
-  if (!doc) {
+  // Open an isolated print window
+  const printWindow = window.open('', '_blank', 'width=850,height=900');
+  if (!printWindow) {
+    // Popup blocked: fallback to current window print
     window.print();
     return;
   }
 
-  doc.open();
-  doc.write(`
+  printWindow.document.open();
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${note.title || 'Note'}</title>
+        <title>${note.title || 'Note'} — GitNotes</title>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
           @page {
             size: ${options.pageSize};
             margin: ${top}mm ${right}mm ${bottom}mm ${left}mm;
           }
-          * {
-            box-sizing: border-box;
-          }
+          * { box-sizing: border-box; }
           body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1a1a1a;
-            background: #ffffff;
             margin: 0;
-            padding: 0;
+            padding: 16px;
+            background: #ffffff;
+            color: #111827;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-          }
-          h1, h2, h3, h4 {
-            color: #111;
-            break-after: avoid;
-            page-break-after: avoid;
-            margin-top: 1.2em;
-            margin-bottom: 0.4em;
-          }
-          h1 { font-size: 1.7rem; font-weight: 700; }
-          h2 { font-size: 1.35rem; font-weight: 600; border-bottom: 1px solid #eaeaea; padding-bottom: 4px; }
-          h3 { font-size: 1.15rem; font-weight: 600; }
-          p {
-            line-height: 1.6;
-            margin-top: 0;
-            margin-bottom: 0.85em;
-          }
-          ul, ol {
-            padding-left: 1.4rem;
-            margin-bottom: 0.85em;
-            line-height: 1.6;
-          }
-          li {
-            margin-bottom: 0.25em;
-          }
-          blockquote {
-            margin: 1em 0;
-            padding: 0.4em 1em;
-            color: #4b5563;
-            border-left: 3.5px solid #d49420;
-            background-color: #fdfaf3;
-            font-style: italic;
-          }
-          code {
-            font-family: "SF Mono", Menlo, Monaco, monospace;
-            font-size: 0.88em;
-            background: #f3f4f6;
-            padding: 2px 5px;
-            border-radius: 4px;
-            color: #b45309;
-          }
-          pre {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 10px 14px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          pre code {
-            background: transparent;
-            padding: 0;
-            color: #1e293b;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1em 0;
-            break-inside: avoid;
-          }
-          th, td {
-            border: 1px solid #e5e7eb;
-            padding: 6px 10px;
-            text-align: left;
-            font-size: 0.9em;
-          }
-          th {
-            background: #f9fafb;
-            font-weight: 600;
-          }
-          hr {
-            border: 0;
-            border-top: 1px solid #e5e7eb;
-            margin: 1.4em 0;
-          }
-          .notebook-badge {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 600;
-            color: #b45309;
-            background: #fffbeb;
-            border: 1px solid #fef3c7;
-            padding: 2px 6px;
-            border-radius: 4px;
-          }
-          .print-date {
-            font-size: 11px;
-            color: #6b7280;
-            float: right;
-          }
-          .document-header {
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
-          }
-          .document-footer {
-            border-top: 1px solid #f3f4f6;
-            margin-top: 24px;
-            padding-top: 10px;
-            font-size: 10px;
-            color: #9ca3af;
-            display: flex;
-            justify-content: space-between;
-          }
-          /* Task list item styling */
-          input[type="checkbox"] {
-            margin-right: 6px;
-            vertical-align: middle;
           }
         </style>
       </head>
       <body>
         ${printableHtml}
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.focus();
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }, 150);
+          };
+        </script>
       </body>
     </html>
   `);
-  doc.close();
-
-  setTimeout(() => {
-    printFrame.contentWindow?.focus();
-    printFrame.contentWindow?.print();
-    setTimeout(() => {
-      document.body.removeChild(printFrame);
-    }, 2000);
-  }, 250);
+  printWindow.document.close();
 }

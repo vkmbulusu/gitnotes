@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Notebook, Note, GitHubUser } from './types';
 import {
   getStoredToken,
@@ -25,12 +25,13 @@ import {
   saveNote,
   deleteNote,
 } from './services/github';
-import { extractTitle, titleToFilename } from './services/markdown';
+import { extractTitle } from './services/markdown';
 import { Sidebar } from './components/Sidebar';
 import { NotesList } from './components/NotesList';
 import { Editor } from './components/Editor';
 import { GitHubAuthModal } from './components/GitHubAuthModal';
 import { NewNotebookModal } from './components/NewNotebookModal';
+import { MigrateDemoModal } from './components/MigrateDemoModal';
 import { DEMO_USER } from './services/demoData';
 
 export function App() {
@@ -47,9 +48,11 @@ export function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNewNotebookModal, setShowNewNotebookModal] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
 
-  // Auto-save debounce timer ref
-  const autoSaveTimerRef = useRef<any>(null);
+  // Responsive & Sidebar Toggle State
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [mobileView, setMobileView] = useState<'notebooks' | 'notes' | 'editor'>('editor');
 
   // Apply theme to document
   useEffect(() => {
@@ -63,6 +66,10 @@ export function App() {
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarVisible((prev) => !prev);
   };
 
   // Initial load
@@ -89,7 +96,6 @@ export function App() {
     const demoNbs = getDemoNotebooks();
     const demoNotesMap = getDemoNotes();
 
-    // Attach accurate note counts
     const enriched = demoNbs.map((nb) => ({
       ...nb,
       notesCount: (demoNotesMap[nb.id] || []).length,
@@ -154,7 +160,6 @@ export function App() {
     ).then(async (mdNotes) => {
       if (!isSubscribed) return;
 
-      // Update notebook notesCount
       setNotebooks((prev) =>
         prev.map((nb) =>
           nb.id === activeNotebook.id ? { ...nb, notesCount: mdNotes.length } : nb
@@ -166,8 +171,7 @@ export function App() {
       if (mdNotes.length > 0) {
         const savedNoteId = getActiveNoteId();
         const initialNote = mdNotes.find((n) => n.id === savedNoteId) || mdNotes[0];
-        
-        // Fetch full content of initial note
+
         try {
           const { content, sha } = await getNoteContent(
             token,
@@ -202,11 +206,11 @@ export function App() {
     };
   }, [activeNotebook, token, currentUser?.isDemo]);
 
-  // Handle Note Selection (with lazy fetch for GitHub notes)
+  // Note Selection
   const handleSelectNote = async (note: Note) => {
     setActiveNoteId(note.id);
+    setMobileView('editor'); // On mobile: navigate to editor
 
-    // If content not yet loaded and connected to GitHub, fetch it
     if (!note.content && token && activeNotebook && !currentUser?.isDemo) {
       try {
         const { content, sha } = await getNoteContent(
@@ -233,7 +237,12 @@ export function App() {
     setActiveNote(note);
   };
 
-  // Content Change Handler (Click & Write)
+  const handleSelectNotebook = (nb: Notebook) => {
+    setActiveNotebook(nb);
+    setMobileView('notes'); // On mobile: navigate to notes list
+  };
+
+  // Content Change
   const handleChangeContent = (newContent: string) => {
     if (!activeNote || !activeNotebook) return;
 
@@ -252,7 +261,6 @@ export function App() {
       prevNotes.map((n) => (n.id === activeNote.id ? updatedNote : n))
     );
 
-    // If demo mode, auto-save to localStorage
     if (currentUser?.isDemo || !token) {
       const demoNotesMap = getDemoNotes();
       const nbNotes = demoNotesMap[activeNotebook.id] || [];
@@ -271,7 +279,6 @@ export function App() {
     setIsSaving(true);
     try {
       if (currentUser?.isDemo || !token) {
-        // Simulated Git commit in Demo mode
         await new Promise((res) => setTimeout(res, 400));
         const newSha = Math.random().toString(16).slice(2, 10);
         const cleanNote: Note = {
@@ -295,7 +302,6 @@ export function App() {
         return;
       }
 
-      // Real Git commit on GitHub
       const result = await saveNote(
         token,
         activeNotebook.owner,
@@ -328,7 +334,7 @@ export function App() {
     }
   };
 
-  // Create New Note (.md file)
+  // Create New Note
   const handleCreateNote = async () => {
     if (!activeNotebook) return;
 
@@ -354,8 +360,8 @@ export function App() {
     setNotes(updatedNotes);
     setActiveNote(newNote);
     setActiveNoteId(newNote.id);
+    setMobileView('editor'); // On mobile: view editor
 
-    // Update notebooks note count
     setNotebooks((prev) =>
       prev.map((nb) =>
         nb.id === activeNotebook.id
@@ -369,7 +375,6 @@ export function App() {
       demoNotesMap[activeNotebook.id] = updatedNotes;
       saveDemoNotes(demoNotesMap);
     } else {
-      // Commit the new file to GitHub repository immediately
       try {
         const result = await saveNote(
           token,
@@ -398,7 +403,7 @@ export function App() {
     }
   };
 
-  // Delete Note (.md file from git repo)
+  // Delete Note
   const handleDeleteNote = async (noteToDelete?: Note) => {
     const target = noteToDelete || activeNote;
     if (!target || !activeNotebook) return;
@@ -439,7 +444,7 @@ export function App() {
     }
   };
 
-  // Create New Notebook Repository
+  // Create New Notebook
   const handleCreateNotebook = async (
     name: string,
     description: string,
@@ -482,14 +487,15 @@ export function App() {
       setActiveNotebook(newNb);
       setNotes([initialNote]);
       setActiveNote(initialNote);
+      setMobileView('editor');
       return;
     }
 
-    // Real GitHub repo creation
     const created = await createRepository(token, name, description, isPrivate);
     const updatedNotebooks = [created, ...notebooks];
     setNotebooks(updatedNotebooks);
     setActiveNotebook(created);
+    setMobileView('notes');
   };
 
   const handleLoginSuccess = (newToken: string, user: GitHubUser) => {
@@ -498,6 +504,12 @@ export function App() {
     setCurrentUser(user);
     setStoredUser(user);
     loadGitHubNotebooks(newToken);
+
+    // Check if user has demo notebooks to offer migration
+    const demoNbs = getDemoNotebooks();
+    if (demoNbs.length > 0) {
+      setShowMigrateModal(true);
+    }
   };
 
   const handleLogout = () => {
@@ -507,40 +519,67 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-apple-grayBg dark:bg-apple-sidebarDark font-sans">
-      {/* Column 1: Notebooks (Git Repositories) */}
-      <Sidebar
-        notebooks={notebooks}
-        activeNotebook={activeNotebook}
-        onSelectNotebook={setActiveNotebook}
-        onOpenNewNotebookModal={() => setShowNewNotebookModal(true)}
-        onOpenAuthModal={() => setShowAuthModal(true)}
-        currentUser={currentUser}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+    <div className="flex h-screen w-screen overflow-hidden bg-apple-grayBg dark:bg-apple-sidebarDark font-sans relative">
+      {/* Column 1: Notebooks Sidebar */}
+      <div
+        className={`${
+          mobileView === 'notebooks' ? 'flex w-full' : 'hidden'
+        } md:flex ${
+          isSidebarVisible ? 'md:w-64' : 'md:hidden'
+        } flex-none h-full transition-all`}
+      >
+        <Sidebar
+          notebooks={notebooks}
+          activeNotebook={activeNotebook}
+          onSelectNotebook={handleSelectNotebook}
+          onOpenNewNotebookModal={() => setShowNewNotebookModal(true)}
+          onOpenAuthModal={() => setShowAuthModal(true)}
+          currentUser={currentUser}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onToggleCollapse={toggleSidebar}
+        />
+      </div>
 
       {/* Column 2: Notes List */}
-      <NotesList
-        notes={notes}
-        activeNote={activeNote}
-        activeNotebook={activeNotebook}
-        onSelectNote={handleSelectNote}
-        onCreateNote={handleCreateNote}
-        onDeleteNote={handleDeleteNote}
-      />
+      <div
+        className={`${
+          mobileView === 'notes' ? 'flex w-full' : 'hidden'
+        } md:flex md:w-80 flex-none h-full`}
+      >
+        <NotesList
+          notes={notes}
+          activeNote={activeNote}
+          activeNotebook={activeNotebook}
+          onSelectNote={handleSelectNote}
+          onCreateNote={handleCreateNote}
+          onDeleteNote={handleDeleteNote}
+          onBackToNotebooks={() => setMobileView('notebooks')}
+          onToggleSidebar={toggleSidebar}
+          isSidebarVisible={isSidebarVisible}
+        />
+      </div>
 
-      {/* Column 3: Active Note Editor (Click & Write) */}
-      <Editor
-        note={activeNote}
-        notebook={activeNotebook}
-        token={token}
-        onChangeContent={handleChangeContent}
-        onCommit={handleCommit}
-        onDeleteNote={handleDeleteNote}
-        onCreateNote={handleCreateNote}
-        isSaving={isSaving}
-      />
+      {/* Column 3: Active Note Editor */}
+      <div
+        className={`${
+          mobileView === 'editor' ? 'flex w-full' : 'hidden'
+        } md:flex flex-1 h-full`}
+      >
+        <Editor
+          note={activeNote}
+          notebook={activeNotebook}
+          token={token}
+          onChangeContent={handleChangeContent}
+          onCommit={handleCommit}
+          onDeleteNote={handleDeleteNote}
+          onCreateNote={handleCreateNote}
+          isSaving={isSaving}
+          onBackToNotes={() => setMobileView('notes')}
+          onToggleSidebar={toggleSidebar}
+          isSidebarVisible={isSidebarVisible}
+        />
+      </div>
 
       {/* Modals */}
       <GitHubAuthModal
@@ -557,7 +596,19 @@ export function App() {
         onClose={() => setShowNewNotebookModal(false)}
         onCreate={handleCreateNotebook}
       />
+
+      {token && (
+        <MigrateDemoModal
+          isOpen={showMigrateModal}
+          onClose={() => setShowMigrateModal(false)}
+          token={token}
+          demoNotebooks={getDemoNotebooks()}
+          demoNotes={getDemoNotes()}
+          onMigrationComplete={() => loadGitHubNotebooks(token)}
+        />
+      )}
     </div>
   );
 }
+
 export default App;

@@ -23,13 +23,14 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
 }) => {
   const [options, setOptions] = useState<PDFExportOptions>(DEFAULT_PDF_OPTIONS);
   const [isExporting, setIsExporting] = useState(false);
+  const previewRef = React.useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
   const handleDownload = async () => {
     try {
       setIsExporting(true);
-      await exportNoteToPDF(note, notebook, options);
+      await exportNoteToPDF(note, notebook, options, previewRef.current);
     } catch (err) {
       console.error('PDF export error:', err);
       alert('Failed to generate PDF. You can also use the "Print / Save as PDF" option.');
@@ -213,6 +214,7 @@ export const PDFExportModal: React.FC<PDFExportModalProps> = ({
             {/* Document sheet representation */}
             <div className="w-full max-w-xl bg-white text-neutral-900 shadow-xl rounded-sm p-8 min-h-[500px] border border-neutral-200">
               <div
+                ref={previewRef}
                 dangerouslySetInnerHTML={{
                   __html: buildPrintableHtml(note, notebook, options),
                 }}
