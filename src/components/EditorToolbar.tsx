@@ -49,9 +49,24 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onOpenAuthModal,
 }) => {
   return (
-    <header className="app-toolbar flex-none px-3 sm:px-6 py-2.5 border-b border-apple-borderLight dark:border-apple-borderDark bg-white/80 dark:bg-apple-sidebarDark/80 backdrop-blur-md flex items-center justify-between gap-2 select-none">
-      {/* Left: Back button (mobile), Sidebar toggle (desktop), Breadcrumbs */}
-      <div className="flex items-center gap-1.5 min-w-0">
+    <header className="app-toolbar flex-none px-3 sm:px-6 py-2.5 border-b border-apple-borderLight dark:border-apple-borderDark bg-white/80 dark:bg-apple-sidebarDark/80 backdrop-blur-md flex flex-col md:flex-row md:items-center md:justify-between gap-2 select-none">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        {/* Mobile account shortcut: keep it in a dedicated top row for easy reach. */}
+        {onOpenAuthModal && (
+          <button
+            type="button"
+            onClick={onOpenAuthModal}
+            className="md:hidden inline-flex items-center justify-center gap-1.5 min-h-10 px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 text-xs font-semibold shadow-sm"
+            title={currentUser && !currentUser.isDemo ? `Connected as ${currentUser.login}` : 'Connect GitHub'}
+            aria-label={currentUser && !currentUser.isDemo ? `GitHub connected as ${currentUser.login}` : 'Sign in with GitHub'}
+          >
+            <Github className="w-4 h-4" />
+            <span>{currentUser && !currentUser.isDemo ? 'Account' : 'Sign in'}</span>
+          </button>
+        )}
+
+        {/* Left: Back button, Sidebar toggle, Breadcrumbs */}
+        <div className="flex items-center gap-1.5 min-w-0">
         {/* Mobile Back Button to Notes List */}
         {onBackToNotes && (
           <button
@@ -85,9 +100,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             {note.path}
           </span>
         </div>
+        </div>
       </div>
 
       {/* Middle: Segmented Toggle Switch (Rich Text <-> Markdown) */}
+      <div className="flex items-center justify-between gap-2">
       <div className="segmented-control flex items-center bg-neutral-200/70 dark:bg-neutral-800/80 p-0.5 rounded-lg border border-neutral-300/40 dark:border-neutral-700/50 shadow-inner flex-none">
         <button
           type="button"
@@ -124,7 +141,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           <button
             type="button"
             onClick={onOpenAuthModal}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 transition"
+            className="hidden md:flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 transition"
             title={currentUser && !currentUser.isDemo ? `Connected as ${currentUser.login}` : 'Connect GitHub'}
             aria-label={currentUser && !currentUser.isDemo ? `GitHub connected as ${currentUser.login}` : 'Sign in with GitHub'}
           >
@@ -206,6 +223,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <Trash2 className="w-4 h-4" />
         </button>
+      </div>
       </div>
     </header>
   );
