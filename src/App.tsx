@@ -46,6 +46,7 @@ export function App() {
   const [activeNote, setActiveNote] = useState<Note | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNewNotebookModal, setShowNewNotebookModal] = useState(false);
   const [showMigrateModal, setShowMigrateModal] = useState(false);
@@ -448,6 +449,99 @@ export function App() {
     }
   };
 
+  const handleImportFiles = async (files: File[]) => {
+    if (!activeNotebook || isImporting) return;
+
+    const markdownFiles = files.filter((file) => /\.(md|markdown)$/i.test(file.name));
+    if (markdownFiles.length !== files.length) {
+      alert('Only .md and .markdown files can be imported.');
+    }
+    if (markdownFiles.length === 0) return;
+
+    setIsImporting(true);
+    const usedPaths = new Set(notes.map((note) => note.path.toLowerCase()));
+    const imported: Note[] = [];
+    const failures: string[] = [];
+
+    try {
+      for (const file of markdownFiles) {
+        const originalName = file.name.replace(/[\\/]/g, '-');
+        const extension = originalName.match(/\.(md|markdown)$/i)?.[0] || '.md';
+        const stem = originalName.slice(0, -extension.length).trim() || 'Untitled';
+        let path = `${stem}${extension}`;
+        let suffix = 2;
+        while (usedPaths.has(path.toLowerCase())) {
+          path = `${stem}-${suffix}${extension}`;
+          suffix += 1;
+        }
+        usedPaths.add(path.toLowerCase());
+
+        try {
+          const content = await file.text();
+          const now = new Date().toISOString();
+          const createdNote: Note = {
+            id: path,
+            notebookId: activeNotebook.id,
+            path,
+            title: extractTitle(content, stem),
+            content,
+            sha: 'initial',
+            updatedAt: now,
+            createdAt: now,
+            isDirty: false,
+            syncStatus: 'synced',
+          };
+
+          if (currentUser?.isDemo || !token) {
+            const demoNotesMap = getDemoNotes();
+            demoNotesMap[activeNotebook.id] = [...(demoNotesMap[activeNotebook.id] || []), createdNote];
+            saveDemoNotes(demoNotesMap);
+            imported.push({ ...createdNote, sha: Math.random().toString(16).slice(2, 10) });
+          } else {
+            const result = await saveNote(
+              token,
+              activeNotebook.owner,
+              activeNotebook.name,
+              path,
+              content,
+              undefined,
+              `Import note: ${createdNote.title}`,
+              activeNotebook.defaultBranch
+            );
+            imported.push({
+              ...createdNote,
+              sha: result.sha,
+              lastCommitSha: result.commitSha.slice(0, 7),
+              lastCommittedAt: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          usedPaths.delete(path.toLowerCase());
+          failures.push(file.name);
+          console.error(`Failed to import ${file.name}:`, error);
+        }
+      }
+
+      if (imported.length) {
+        setNotes([...imported, ...notes]);
+        setNotebooks((previous) => previous.map((notebook) =>
+          notebook.id === activeNotebook.id
+            ? { ...notebook, notesCount: (notebook.notesCount || 0) + imported.length }
+            : notebook
+        ));
+        setMobileView('notes');
+      }
+
+      if (failures.length) {
+        alert(`Imported ${imported.length} file(s). Could not import: ${failures.join(', ')}.`);
+      } else {
+        alert(`Imported ${imported.length} Markdown file(s) into ${activeNotebook.name}.`);
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // Delete Note
   const handleDeleteNote = async (noteToDelete?: Note) => {
     const target = noteToDelete || activeNote;
@@ -598,6 +692,8 @@ export function App() {
           activeNotebook={activeNotebook}
           onSelectNote={handleSelectNote}
           onCreateNote={handleCreateNote}
+          onImportFiles={handleImportFiles}
+          isImporting={isImporting}
           onDeleteNote={handleDeleteNote}
           onBackToNotebooks={() => setMobileView('notebooks')}
           onToggleSidebar={toggleSidebar}
