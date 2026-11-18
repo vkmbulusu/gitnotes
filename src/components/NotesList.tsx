@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Note, Notebook } from '../types';
 import { extractSnippet } from '../services/markdown';
+import { ImportMarkdownModal } from './ImportMarkdownModal';
 import {
   PenSquare,
   Search,
@@ -18,7 +19,8 @@ interface NotesListProps {
   activeNotebook: Notebook | null;
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
-  onImportFiles: (files: File[]) => Promise<void>;
+  branches: string[];
+  onImportFiles: (files: File[], branch: string, folder: string) => Promise<void>;
   isImporting: boolean;
   onDeleteNote: (note: Note) => void;
   onBackToNotebooks?: () => void;
@@ -32,6 +34,7 @@ export const NotesList: React.FC<NotesListProps> = ({
   activeNotebook,
   onSelectNote,
   onCreateNote,
+  branches,
   onImportFiles,
   isImporting,
   onDeleteNote,
@@ -40,7 +43,7 @@ export const NotesList: React.FC<NotesListProps> = ({
   isSidebarVisible,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const filteredNotes = notes.filter((n) => {
     const q = searchQuery.toLowerCase();
@@ -118,22 +121,10 @@ export const NotesList: React.FC<NotesListProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 flex-none">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".md,.markdown,text/markdown"
-            multiple
-            className="hidden"
-            onChange={async (event) => {
-              const files = Array.from(event.currentTarget.files || []);
-              event.currentTarget.value = '';
-              if (files.length) await onImportFiles(files);
-            }}
-          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting || !activeNotebook}
+            onClick={() => setShowImportModal(true)}
+            disabled={isImporting || !activeNotebook || !branches.length}
             className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-200/70 dark:hover:bg-neutral-800 hover:text-amber-600 dark:hover:text-amber-400 disabled:opacity-50 transition"
             title={isImporting ? 'Importing Markdown files…' : 'Import Markdown files'}
             aria-label={isImporting ? 'Importing Markdown files' : 'Import Markdown files'}
@@ -269,6 +260,18 @@ export const NotesList: React.FC<NotesListProps> = ({
           })
         )}
       </div>
+
+      {activeNotebook && (
+        <ImportMarkdownModal
+          key={activeNotebook.id}
+          isOpen={showImportModal}
+          branches={branches}
+          defaultBranch={activeNotebook.defaultBranch}
+          isImporting={isImporting}
+          onClose={() => setShowImportModal(false)}
+          onImport={onImportFiles}
+        />
+      )}
     </div>
   );
 };
