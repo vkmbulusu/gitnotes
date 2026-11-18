@@ -102,6 +102,19 @@ export async function listRepositories(token: string): Promise<Notebook[]> {
   }));
 }
 
+/** List the branches a user can target when importing notes. */
+export async function listBranches(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<string[]> {
+  const branches = await githubFetch(
+    `/repos/${owner}/${repo}/branches?per_page=100`,
+    token
+  );
+  return branches.map((branch: any) => branch.name as string);
+}
+
 /**
  * Create a new repository on GitHub to act as a notebook
  */
@@ -147,7 +160,7 @@ export async function listMarkdownNotes(
   try {
     // 1. Get branch commit SHA
     const branchData = await githubFetch(
-      `/repos/${owner}/${repo}/branches/${branch}`,
+      `/repos/${owner}/${repo}/branches/${encodeURIComponent(branch)}`,
       token
     );
     const commitSha = branchData.commit.sha;
@@ -205,7 +218,7 @@ export async function getNoteContent(
   branch: string
 ): Promise<{ content: string; sha: string }> {
   const data = await githubFetch(
-    `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`,
+    `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`,
     token
   );
 
