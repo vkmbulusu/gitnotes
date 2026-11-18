@@ -215,6 +215,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <Github className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-800 dark:group-hover:text-white transition flex-none" />
         </button>
+        <a
+          href="https://github.com/vkmbulusu/gitnotes"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-neutral-500 hover:text-amber-600 dark:text-neutral-400 dark:hover:text-amber-400 transition"
+        >
+          <Github className="w-3.5 h-3.5" />
+          Open source on GitHub
+        </a>
       </div>
     </aside>
   );
