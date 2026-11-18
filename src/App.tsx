@@ -19,6 +19,7 @@ import {
 import {
   verifyToken,
   listRepositories,
+  listBranches,
   createRepository,
   listMarkdownNotes,
   getNoteContent,
@@ -41,6 +42,7 @@ export function App() {
 
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [activeNotebook, setActiveNotebook] = useState<Notebook | null>(null);
+  const [branches, setBranches] = useState<string[]>([]);
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -288,6 +290,29 @@ export function App() {
     setMobileView('notes'); // On mobile: navigate to notes list
   };
 
+  useEffect(() => {
+    if (!activeNotebook) {
+      setBranches([]);
+      return;
+    }
+
+    setBranches([activeNotebook.defaultBranch]);
+    if (!token || currentUser?.isDemo) return;
+
+    let isSubscribed = true;
+    listBranches(token, activeNotebook.owner, activeNotebook.name)
+      .then((repoBranches) => {
+        if (isSubscribed) {
+          setBranches(Array.from(new Set([activeNotebook.defaultBranch, ...repoBranches])));
+        }
+      })
+      .catch((error) => console.error('Failed to load repository branches:', error));
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [activeNotebook, token, currentUser?.isDemo]);
+
   // Content Change
   const handleChangeContent = (newContent: string) => {
     if (!activeNote || !activeNotebook) return;
@@ -449,7 +474,7 @@ export function App() {
     }
   };
 
-  const handleImportFiles = async (files: File[]) => {
+  const handleImportFiles = async (files: File[], targetBranch: string, destinationFolder: string) => {
     if (!activeNotebook || isImporting) return;
 
     const markdownFiles = files.filter((file) => /\.(md|markdown)$/i.test(file.name));
@@ -458,20 +483,34 @@ export function App() {
     }
     if (markdownFiles.length === 0) return;
 
+    const folderSegments = destinationFolder
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    if (folderSegments.some((segment) => segment === '.' || segment === '..' || segment.includes('\\'))) {
+      alert('Enter a folder path using normal folder names. Relative path segments are not allowed.');
+      return;
+    }
+    const folderPrefix = folderSegments.length ? `${folderSegments.join('/')}/` : '';
+
     setIsImporting(true);
-    const usedPaths = new Set(notes.map((note) => note.path.toLowerCase()));
     const imported: Note[] = [];
     const failures: string[] = [];
 
     try {
+      const existingNotes = currentUser?.isDemo || !token || targetBranch === activeNotebook.defaultBranch
+        ? notes
+        : await listMarkdownNotes(token, activeNotebook.owner, activeNotebook.name, targetBranch);
+      const usedPaths = new Set(existingNotes.map((note) => note.path.toLowerCase()));
+
       for (const file of markdownFiles) {
         const originalName = file.name.replace(/[\\/]/g, '-');
         const extension = originalName.match(/\.(md|markdown)$/i)?.[0] || '.md';
         const stem = originalName.slice(0, -extension.length).trim() || 'Untitled';
-        let path = `${stem}${extension}`;
+        let path = `${folderPrefix}${stem}${extension}`;
         let suffix = 2;
         while (usedPaths.has(path.toLowerCase())) {
-          path = `${stem}-${suffix}${extension}`;
+          path = `${folderPrefix}${stem}-${suffix}${extension}`;
           suffix += 1;
         }
         usedPaths.add(path.toLowerCase());
@@ -506,7 +545,7 @@ export function App() {
               content,
               undefined,
               `Import note: ${createdNote.title}`,
-              activeNotebook.defaultBranch
+              targetBranch
             );
             imported.push({
               ...createdNote,
@@ -522,8 +561,9 @@ export function App() {
         }
       }
 
-      if (imported.length) {
-        setNotes([...imported, ...notes]);
+      if (imported.length && targetBranch === activeNotebook.defaultBranch) {
+        const updatedNotes = [...imported, ...notes];
+        setNotes(updatedNotes);
         setNotebooks((previous) => previous.map((notebook) =>
           notebook.id === activeNotebook.id
             ? { ...notebook, notesCount: (notebook.notesCount || 0) + imported.length }
@@ -532,10 +572,11 @@ export function App() {
         setMobileView('notes');
       }
 
+      const destination = `${activeNotebook.fullName}/${folderPrefix || ''} (${targetBranch})`;
       if (failures.length) {
-        alert(`Imported ${imported.length} file(s). Could not import: ${failures.join(', ')}.`);
+        alert(`Imported ${imported.length} file(s) to ${destination}. Could not import: ${failures.join(', ')}.`);
       } else {
-        alert(`Imported ${imported.length} Markdown file(s) into ${activeNotebook.name}.`);
+        alert(`Imported ${imported.length} Markdown file(s) to ${destination}.`);
       }
     } finally {
       setIsImporting(false);
@@ -690,6 +731,7 @@ export function App() {
           notes={notes}
           activeNote={activeNote}
           activeNotebook={activeNotebook}
+          branches={branches}
           onSelectNote={handleSelectNote}
           onCreateNote={handleCreateNote}
           onImportFiles={handleImportFiles}
