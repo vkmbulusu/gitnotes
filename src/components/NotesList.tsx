@@ -9,6 +9,7 @@ import {
   FileText,
   ChevronLeft,
   PanelLeft,
+  Upload,
 } from 'lucide-react';
 
 interface NotesListProps {
@@ -17,6 +18,8 @@ interface NotesListProps {
   activeNotebook: Notebook | null;
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
+  onImportFiles: (files: File[]) => Promise<void>;
+  isImporting: boolean;
   onDeleteNote: (note: Note) => void;
   onBackToNotebooks?: () => void;
   onToggleSidebar?: () => void;
@@ -29,12 +32,15 @@ export const NotesList: React.FC<NotesListProps> = ({
   activeNotebook,
   onSelectNote,
   onCreateNote,
+  onImportFiles,
+  isImporting,
   onDeleteNote,
   onBackToNotebooks,
   onToggleSidebar,
   isSidebarVisible,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const filteredNotes = notes.filter((n) => {
     const q = searchQuery.toLowerCase();
@@ -111,14 +117,39 @@ export const NotesList: React.FC<NotesListProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onCreateNote}
-          className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white shadow-sm transition flex-none"
-          title="New Note (Create Markdown File)"
-        >
-          <PenSquare className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5 flex-none">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,.markdown,text/markdown"
+            multiple
+            className="hidden"
+            onChange={async (event) => {
+              const files = Array.from(event.currentTarget.files || []);
+              event.currentTarget.value = '';
+              if (files.length) await onImportFiles(files);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting || !activeNotebook}
+            className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-200/70 dark:hover:bg-neutral-800 hover:text-amber-600 dark:hover:text-amber-400 disabled:opacity-50 transition"
+            title={isImporting ? 'Importing Markdown files…' : 'Import Markdown files'}
+            aria-label={isImporting ? 'Importing Markdown files' : 'Import Markdown files'}
+          >
+            <Upload className={`w-4 h-4 ${isImporting ? 'animate-pulse' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={onCreateNote}
+            className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white shadow-sm transition"
+            title="New Note (Create Markdown File)"
+            aria-label="Create a new note"
+          >
+            <PenSquare className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Search Notes in current notebook */}
