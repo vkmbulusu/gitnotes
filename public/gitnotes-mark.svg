@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <title>GitNotes mark</title>
+  <rect x="4" y="4" width="120" height="120" rx="29" fill="#E5A93C"/>
+  <path d="M24 36.5c13.5-4.3 26.8-2.1 40 6.2 13.2-8.3 26.5-10.5 40-6.2v54c-13.6-4.2-26.9-2-40 6.5-13.1-8.5-26.4-10.7-40-6.5v-54Z" fill="#FFFDF8"/>
+  <path d="M64 43v54" stroke="#D49A2E" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M35 51h17M35 61h17M35 71h13" stroke="#E7D9B8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M79 53v25m0-12 13-10" stroke="#B87C14" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="79" cy="51" r="5.5" fill="#E5A93C" stroke="#FFFDF8" stroke-width="2.5"/>
+  <circle cx="79" cy="78" r="5.5" fill="#E5A93C" stroke="#FFFDF8" stroke-width="2.5"/>
+  <circle cx="93" cy="55" r="5.5" fill="#E5A93C" stroke="#FFFDF8" stroke-width="2.5"/>
+</svg>

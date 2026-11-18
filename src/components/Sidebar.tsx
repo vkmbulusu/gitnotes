@@ -54,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer" />
             <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer" />
           </div>
+          <img src="/gitnotes-mark.svg" alt="" className="w-5 h-5 rounded-md" />
           <span className="text-xs font-bold text-neutral-800 dark:text-neutral-100 tracking-tight flex items-center gap-1">
             <span className="text-amber-500">Git</span>Notes
           </span>
