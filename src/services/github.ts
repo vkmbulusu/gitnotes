@@ -191,6 +191,7 @@ export async function listMarkdownNotes(
         id: item.path,
         notebookId: `${owner}/${repo}`,
         path: item.path,
+        branch,
         title: cleanTitle,
         content: '', // content fetched on demand
         sha: item.sha,
