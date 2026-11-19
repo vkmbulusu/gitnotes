@@ -33,6 +33,7 @@ export interface Note {
   id: string;
   notebookId: string;
   path: string; // e.g. "quick-notes.md"
+  branch?: string;
   title: string;
   content: string; // Markdown source
   sha: string; // Git blob SHA
