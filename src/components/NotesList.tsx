@@ -9,9 +9,18 @@ import {
   GitCommit,
   FileText,
   ChevronLeft,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
   PanelLeft,
   Upload,
 } from 'lucide-react';
+
+interface NoteFolder {
+  folders: Map<string, NoteFolder>;
+  files: Note[];
+}
 
 interface NotesListProps {
   notes: Note[];
@@ -48,6 +57,7 @@ export const NotesList: React.FC<NotesListProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
 
   const filteredNotes = notes.filter((n) => {
     const q = searchQuery.toLowerCase();
@@ -57,6 +67,115 @@ export const NotesList: React.FC<NotesListProps> = ({
       n.path.toLowerCase().includes(q)
     );
   });
+
+  const rootFolder: NoteFolder = { folders: new Map(), files: [] };
+  filteredNotes.forEach((note) => {
+    const segments = note.path.split('/').filter(Boolean);
+    const filename = segments.pop();
+    if (!filename) return;
+    let folder = rootFolder;
+    segments.forEach((segment) => {
+      if (!folder.folders.has(segment)) {
+        folder.folders.set(segment, { folders: new Map(), files: [] });
+      }
+      folder = folder.folders.get(segment)!;
+    });
+    folder.files.push(note);
+  });
+
+  const countFolderFiles = (folder: NoteFolder): number =>
+    folder.files.length + Array.from(folder.folders.values()).reduce((count, child) => count + countFolderFiles(child), 0);
+
+  const renderNote = (note: Note, depth: number) => {
+    const isSelected = activeNote?.id === note.id;
+    const snippet = extractSnippet(note.content, note.title);
+
+    return (
+      <div
+        key={note.id}
+        onClick={() => onSelectNote(note)}
+        style={{ marginLeft: depth * 12 }}
+        className={`group relative p-3 rounded-xl cursor-pointer transition border text-left ${
+          isSelected
+            ? 'bg-[#faecd1] dark:bg-[#342711] border-amber-300 dark:border-amber-700/60 shadow-sm'
+            : 'bg-white/60 dark:bg-neutral-900/40 border-neutral-200/50 dark:border-neutral-800/40 hover:bg-white dark:hover:bg-neutral-900'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className={`text-xs font-semibold truncate ${isSelected ? 'text-amber-950 dark:text-amber-100' : 'text-neutral-900 dark:text-white'}`}>
+            {note.title || 'Untitled Note'}
+          </h3>
+          <span className="text-[10px] text-neutral-400 flex-none font-mono">{formatNoteDate(note.updatedAt)}</span>
+        </div>
+
+        <p className="text-[9px] text-neutral-400 font-mono truncate mb-1" title={note.path}>{note.path}</p>
+        <p className={`text-[11px] line-clamp-2 leading-relaxed ${isSelected ? 'text-amber-900/80 dark:text-amber-200/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
+          {snippet}
+        </p>
+
+        <div className="mt-2 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+          <div className="flex items-center gap-1.5">
+            {note.isDirty ? (
+              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Uncommitted
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-neutral-400">
+                <GitCommit className="w-2.5 h-2.5" />
+                {note.lastCommitSha || note.sha?.slice(0, 7) || 'git'}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (confirm(`Delete "${note.title}"? This will delete ${note.path} from the Git repository.`)) {
+                onDeleteNote(note);
+              }
+            }}
+            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 rounded transition"
+            title="Delete Note"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFolder = (folder: NoteFolder, parentPath = '', depth = 0): React.ReactNode => (
+    <>
+      {Array.from(folder.folders.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([name, child]) => {
+        const path = parentPath ? `${parentPath}/${name}` : name;
+        const collapsed = collapsedFolders.has(path);
+        return (
+          <div key={path}>
+            <button
+              type="button"
+              onClick={() => setCollapsedFolders((previous) => {
+                const next = new Set(previous);
+                if (next.has(path)) next.delete(path);
+                else next.add(path);
+                return next;
+              })}
+              className="w-full flex items-center gap-1.5 py-1.5 pr-2 rounded-lg text-left text-[11px] font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60"
+              style={{ paddingLeft: 8 + depth * 12 }}
+              title={path}
+            >
+              {collapsed ? <ChevronRight className="w-3 h-3 text-neutral-400" /> : <ChevronDown className="w-3 h-3 text-neutral-400" />}
+              {collapsed ? <Folder className="w-3.5 h-3.5 text-amber-500" /> : <FolderOpen className="w-3.5 h-3.5 text-amber-500" />}
+              <span className="truncate flex-1">{name}</span>
+              <span className="text-[9px] text-neutral-400 font-mono">{countFolderFiles(child)}</span>
+            </button>
+            {!collapsed && <div>{renderFolder(child, path, depth + 1)}</div>}
+          </div>
+        );
+      })}
+      {folder.files.sort((left, right) => left.path.localeCompare(right.path)).map((note) => renderNote(note, depth))}
+    </>
+  );
 
   const formatNoteDate = (isoDate?: string): string => {
     if (!isoDate) return '';
@@ -192,86 +311,7 @@ export const NotesList: React.FC<NotesListProps> = ({
             )}
           </div>
         ) : (
-          filteredNotes.map((note) => {
-            const isSelected = activeNote?.id === note.id;
-            const snippet = extractSnippet(note.content, note.title);
-
-            return (
-              <div
-                key={note.id}
-                onClick={() => onSelectNote(note)}
-                className={`group relative p-3 rounded-xl cursor-pointer transition border text-left ${
-                  isSelected
-                    ? 'bg-[#faecd1] dark:bg-[#342711] border-amber-300 dark:border-amber-700/60 shadow-sm'
-                    : 'bg-white/60 dark:bg-neutral-900/40 border-neutral-200/50 dark:border-neutral-800/40 hover:bg-white dark:hover:bg-neutral-900'
-                }`}
-              >
-                {/* Title & Date */}
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3
-                    className={`text-xs font-semibold truncate ${
-                      isSelected
-                        ? 'text-amber-950 dark:text-amber-100'
-                        : 'text-neutral-900 dark:text-white'
-                    }`}
-                  >
-                    {note.title || 'Untitled Note'}
-                  </h3>
-
-                  <span className="text-[10px] text-neutral-400 flex-none font-mono">
-                    {formatNoteDate(note.updatedAt)}
-                  </span>
-                </div>
-
-                {/* 2-line snippet preview */}
-                <p
-                  className={`text-[11px] line-clamp-2 leading-relaxed ${
-                    isSelected
-                      ? 'text-amber-900/80 dark:text-amber-200/70'
-                      : 'text-neutral-500 dark:text-neutral-400'
-                  }`}
-                >
-                  {snippet}
-                </p>
-
-                {/* Git Metadata & Delete Action footer */}
-                <div className="mt-2 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
-                  <div className="flex items-center gap-1.5">
-                    {note.isDirty ? (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        Uncommitted
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-neutral-400">
-                        <GitCommit className="w-2.5 h-2.5" />
-                        {note.lastCommitSha || note.sha?.slice(0, 7) || 'git'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Delete note button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (
-                        confirm(
-                          `Delete "${note.title}"? This will delete ${note.path} from the Git repository.`
-                        )
-                      ) {
-                        onDeleteNote(note);
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 rounded transition"
-                    title="Delete Note"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })
+          renderFolder(rootFolder)
         )}
       </div>
 
