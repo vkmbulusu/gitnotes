@@ -30,6 +30,7 @@ import { extractTitle } from './services/markdown';
 import { Sidebar } from './components/Sidebar';
 import { NotesList } from './components/NotesList';
 import { Editor } from './components/Editor';
+import { NewNoteDestinationModal } from './components/NewNoteDestinationModal';
 import { GitHubAuthModal } from './components/GitHubAuthModal';
 import { NewNotebookModal } from './components/NewNotebookModal';
 import { MigrateDemoModal } from './components/MigrateDemoModal';
@@ -43,13 +44,16 @@ export function App() {
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [activeNotebook, setActiveNotebook] = useState<Notebook | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
+  const [activeBranch, setActiveBranch] = useState('');
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [showNewNotebookModal, setShowNewNotebookModal] = useState(false);
   const [showMigrateModal, setShowMigrateModal] = useState(false);
 
@@ -187,6 +191,7 @@ export function App() {
     }
 
     setActiveNotebookId(activeNotebook.id);
+    const branch = activeBranch || activeNotebook.defaultBranch;
 
     if (currentUser?.isDemo || !token) {
       const demoNotesMap = getDemoNotes();
@@ -204,7 +209,7 @@ export function App() {
       token,
       activeNotebook.owner,
       activeNotebook.name,
-      activeNotebook.defaultBranch
+      branch
     ).then(async (mdNotes) => {
       if (!isSubscribed) return;
 
@@ -226,7 +231,7 @@ export function App() {
             activeNotebook.owner,
             activeNotebook.name,
             initialNote.path,
-            activeNotebook.defaultBranch
+            branch
           );
           if (isSubscribed) {
             const enrichedNote = {
@@ -252,11 +257,12 @@ export function App() {
     return () => {
       isSubscribed = false;
     };
-  }, [activeNotebook, token, currentUser?.isDemo]);
+  }, [activeNotebook, activeBranch, token, currentUser?.isDemo]);
 
   // Note Selection
   const handleSelectNote = async (note: Note) => {
     setActiveNoteId(note.id);
+    if (note.branch) setActiveBranch(note.branch);
     setMobileView('editor'); // On mobile: navigate to editor
 
     if (!note.content && token && activeNotebook && !currentUser?.isDemo) {
@@ -266,7 +272,7 @@ export function App() {
           activeNotebook.owner,
           activeNotebook.name,
           note.path,
-          activeNotebook.defaultBranch
+          note.branch || activeBranch || activeNotebook.defaultBranch
         );
         const enriched = {
           ...note,
@@ -287,8 +293,19 @@ export function App() {
 
   const handleSelectNotebook = (nb: Notebook) => {
     setActiveNotebook(nb);
+    setActiveBranch(nb.defaultBranch);
     setMobileView('notes'); // On mobile: navigate to notes list
   };
+
+  const handleSelectBranch = (branch: string) => {
+    setActiveBranch(branch);
+    setActiveNote(null);
+    setMobileView('notes');
+  };
+
+  useEffect(() => {
+    if (activeNotebook) setActiveBranch(activeNotebook.defaultBranch);
+  }, [activeNotebook?.id]);
 
   useEffect(() => {
     if (!activeNotebook) {
@@ -381,7 +398,7 @@ export function App() {
         activeNote.content,
         activeNote.sha,
         undefined,
-        activeNotebook.defaultBranch
+        activeNote.branch || activeBranch || activeNotebook.defaultBranch
       );
 
       const committedNote: Note = {
@@ -405,48 +422,61 @@ export function App() {
     }
   };
 
-  // Create New Note
-  const handleCreateNote = async () => {
-    if (!activeNotebook) return;
+  // Create a new note at a chosen branch and folder.
+  const handleCreateNote = async (targetBranch: string, destinationFolder: string) => {
+    if (!activeNotebook || isCreatingNote) return;
 
-    const baseTitle = 'New Note';
-    const timestamp = Date.now().toString(36).slice(-4);
-    const filename = `note-${timestamp}.md`;
-    const initialContent = `# ${baseTitle}\n\nClick here and write your thoughts...`;
+    const folderSegments = destinationFolder
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    if (folderSegments.some((segment) => segment === '.' || segment === '..' || segment.includes('\\'))) {
+      alert('Enter a folder path using normal folder names. Relative path segments are not allowed.');
+      return;
+    }
+    const folderPrefix = folderSegments.length ? `${folderSegments.join('/')}/` : '';
 
-    const newNote: Note = {
-      id: filename,
-      notebookId: activeNotebook.id,
-      path: filename,
-      title: baseTitle,
-      content: initialContent,
-      sha: 'initial',
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      isDirty: true,
-      syncStatus: 'dirty',
-    };
+    setIsCreatingNote(true);
+    try {
+      const existingNotes = currentUser?.isDemo || !token
+        ? getDemoNotes()[activeNotebook.id] || []
+        : await listMarkdownNotes(token, activeNotebook.owner, activeNotebook.name, targetBranch);
+      const occupiedPaths = new Set(existingNotes.map((note) => note.path.toLowerCase()));
 
-    const updatedNotes = [newNote, ...notes];
-    setNotes(updatedNotes);
-    setActiveNote(newNote);
-    setActiveNoteId(newNote.id);
-    setMobileView('editor'); // On mobile: view editor
+      const baseTitle = 'New Note';
+      const timestamp = Date.now().toString(36).slice(-4);
+      let filename = `${folderPrefix}note-${timestamp}.md`;
+      let suffix = 2;
+      while (occupiedPaths.has(filename.toLowerCase())) {
+        filename = `${folderPrefix}note-${timestamp}-${suffix}.md`;
+        suffix += 1;
+      }
+      const initialContent = `# ${baseTitle}\n\nClick here and write your thoughts...`;
+      const now = new Date().toISOString();
+      const newNote: Note = {
+        id: filename,
+        notebookId: activeNotebook.id,
+        path: filename,
+        branch: targetBranch,
+        title: baseTitle,
+        content: initialContent,
+        sha: 'initial',
+        updatedAt: now,
+        createdAt: now,
+        isDirty: true,
+        syncStatus: 'dirty',
+      };
 
-    setNotebooks((prev) =>
-      prev.map((nb) =>
-        nb.id === activeNotebook.id
-          ? { ...nb, notesCount: (nb.notesCount || 0) + 1 }
-          : nb
-      )
-    );
+      setNotes((previous) => [newNote, ...previous]);
+      setActiveNote(newNote);
+      setActiveNoteId(newNote.id);
+      setMobileView('editor');
 
-    if (currentUser?.isDemo || !token) {
-      const demoNotesMap = getDemoNotes();
-      demoNotesMap[activeNotebook.id] = updatedNotes;
-      saveDemoNotes(demoNotesMap);
-    } else {
-      try {
+      if (currentUser?.isDemo || !token) {
+        const demoNotesMap = getDemoNotes();
+        demoNotesMap[activeNotebook.id] = [...(demoNotesMap[activeNotebook.id] || []), newNote];
+        saveDemoNotes(demoNotesMap);
+      } else {
         const result = await saveNote(
           token,
           activeNotebook.owner,
@@ -455,7 +485,7 @@ export function App() {
           newNote.content,
           undefined,
           `Create note: ${newNote.title}`,
-          activeNotebook.defaultBranch
+          targetBranch
         );
         const persistedNote = {
           ...newNote,
@@ -465,12 +495,21 @@ export function App() {
           syncStatus: 'synced' as const,
         };
         setActiveNote(persistedNote);
-        setNotes((prev) =>
-          prev.map((n) => (n.id === newNote.id ? persistedNote : n))
-        );
-      } catch (err) {
-        console.error('Failed to initialize note file on GitHub:', err);
+        setNotes((previous) => previous.map((note) => note.id === newNote.id ? persistedNote : note));
       }
+
+      setNotebooks((previous) => previous.map((notebook) =>
+        notebook.id === activeNotebook.id
+          ? { ...notebook, notesCount: (notebook.notesCount || 0) + 1 }
+          : notebook
+      ));
+      setActiveBranch(targetBranch);
+      setShowNewNoteModal(false);
+    } catch (error: any) {
+      console.error('Failed to create note:', error);
+      alert(`Could not create the note: ${error.message || 'Please check repository permissions.'}`);
+    } finally {
+      setIsCreatingNote(false);
     }
   };
 
@@ -498,7 +537,7 @@ export function App() {
     const failures: string[] = [];
 
     try {
-      const existingNotes = currentUser?.isDemo || !token || targetBranch === activeNotebook.defaultBranch
+      const existingNotes = currentUser?.isDemo || !token || targetBranch === activeBranch
         ? notes
         : await listMarkdownNotes(token, activeNotebook.owner, activeNotebook.name, targetBranch);
       const usedPaths = new Set(existingNotes.map((note) => note.path.toLowerCase()));
@@ -522,6 +561,7 @@ export function App() {
             id: path,
             notebookId: activeNotebook.id,
             path,
+            branch: targetBranch,
             title: extractTitle(content, stem),
             content,
             sha: 'initial',
@@ -561,7 +601,7 @@ export function App() {
         }
       }
 
-      if (imported.length && targetBranch === activeNotebook.defaultBranch) {
+      if (imported.length && targetBranch === activeBranch) {
         const updatedNotes = [...imported, ...notes];
         setNotes(updatedNotes);
         setNotebooks((previous) => previous.map((notebook) =>
@@ -570,6 +610,8 @@ export function App() {
             : notebook
         ));
         setMobileView('notes');
+      } else if (imported.length) {
+        setActiveBranch(targetBranch);
       }
 
       const destination = `${activeNotebook.fullName}/${folderPrefix || ''} (${targetBranch})`;
@@ -615,7 +657,7 @@ export function App() {
           activeNotebook.name,
           target.path,
           target.sha,
-          activeNotebook.defaultBranch
+          target.branch || activeBranch || activeNotebook.defaultBranch
         );
       } catch (err: any) {
         console.error('Failed to delete note from GitHub:', err);
@@ -733,9 +775,11 @@ export function App() {
           activeNotebook={activeNotebook}
           branches={branches}
           onSelectNote={handleSelectNote}
-          onCreateNote={handleCreateNote}
+          onCreateNote={() => setShowNewNoteModal(true)}
           onImportFiles={handleImportFiles}
           isImporting={isImporting}
+          activeBranch={activeBranch || activeNotebook?.defaultBranch || ''}
+          onSelectBranch={handleSelectBranch}
           onDeleteNote={handleDeleteNote}
           onBackToNotebooks={() => setMobileView('notebooks')}
           onToggleSidebar={toggleSidebar}
@@ -756,7 +800,7 @@ export function App() {
           onChangeContent={handleChangeContent}
           onCommit={handleCommit}
           onDeleteNote={handleDeleteNote}
-          onCreateNote={handleCreateNote}
+          onCreateNote={() => setShowNewNoteModal(true)}
           isSaving={isSaving}
           onBackToNotes={() => setMobileView('notes')}
           onToggleSidebar={toggleSidebar}
@@ -781,6 +825,18 @@ export function App() {
         onClose={() => setShowNewNotebookModal(false)}
         onCreate={handleCreateNotebook}
       />
+
+      {activeNotebook && (
+        <NewNoteDestinationModal
+          key={`${activeNotebook.id}:${activeBranch}`}
+          isOpen={showNewNoteModal}
+          branches={branches}
+          defaultBranch={activeBranch || activeNotebook.defaultBranch}
+          isCreating={isCreatingNote}
+          onClose={() => setShowNewNoteModal(false)}
+          onCreate={handleCreateNote}
+        />
+      )}
 
       {token && (
         <MigrateDemoModal
