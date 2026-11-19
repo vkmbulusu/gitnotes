@@ -20,6 +20,8 @@ interface NotesListProps {
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
   branches: string[];
+  activeBranch: string;
+  onSelectBranch: (branch: string) => void;
   onImportFiles: (files: File[], branch: string, folder: string) => Promise<void>;
   isImporting: boolean;
   onDeleteNote: (note: Note) => void;
@@ -35,6 +37,8 @@ export const NotesList: React.FC<NotesListProps> = ({
   onSelectNote,
   onCreateNote,
   branches,
+  activeBranch,
+  onSelectBranch,
   onImportFiles,
   isImporting,
   onDeleteNote,
@@ -114,9 +118,19 @@ export const NotesList: React.FC<NotesListProps> = ({
             <h2 className="text-sm font-bold text-neutral-900 dark:text-white truncate">
               {activeNotebook?.name || 'Notes'}
             </h2>
-            <p className="text-[11px] text-neutral-400">
-              {notes.length} {notes.length === 1 ? 'note' : 'notes'} (.md)
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-neutral-400">
+                {notes.length} {notes.length === 1 ? 'note' : 'notes'} (.md)
+              </p>
+              <select
+                aria-label="Repository branch"
+                value={activeBranch}
+                onChange={(event) => onSelectBranch(event.target.value)}
+                className="max-w-28 bg-transparent text-[10px] text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded px-1 py-0.5 outline-none"
+              >
+                {branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -263,10 +277,10 @@ export const NotesList: React.FC<NotesListProps> = ({
 
       {activeNotebook && (
         <ImportMarkdownModal
-          key={activeNotebook.id}
+          key={`${activeNotebook.id}:${activeBranch}`}
           isOpen={showImportModal}
           branches={branches}
-          defaultBranch={activeNotebook.defaultBranch}
+          defaultBranch={activeBranch || activeNotebook.defaultBranch}
           isImporting={isImporting}
           onClose={() => setShowImportModal(false)}
           onImport={onImportFiles}
