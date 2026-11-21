@@ -8,6 +8,34 @@ const ACTIVE_NOTE_KEY = 'chorus_active_note';
 const DEMO_NOTEBOOKS_KEY = 'chorus_demo_notebooks';
 const DEMO_NOTES_KEY = 'chorus_demo_notes';
 const THEME_KEY = 'chorus_theme';
+const NOTE_TITLE_CACHE_KEY = 'chorus_note_title_cache';
+
+export function getCachedNoteTitles(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(NOTE_TITLE_CACHE_KEY) || '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+export function getCachedNoteTitle(key: string): string | null {
+  return getCachedNoteTitles()[key] || null;
+}
+
+export function cacheNoteTitles(titles: Record<string, string>): void {
+  try {
+    const cache = { ...getCachedNoteTitles(), ...titles };
+    const entries = Object.entries(cache);
+    const boundedCache = Object.fromEntries(entries.slice(-1000));
+    localStorage.setItem(NOTE_TITLE_CACHE_KEY, JSON.stringify(boundedCache));
+  } catch {
+    // Title caching is an optimization; the app can still resolve titles without it.
+  }
+}
+
+export function cacheNoteTitle(key: string, title: string): void {
+  cacheNoteTitles({ [key]: title });
+}
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
