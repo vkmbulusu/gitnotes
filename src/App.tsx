@@ -7,6 +7,8 @@ import {
   setStoredUser,
   getStoredTheme,
   setStoredTheme,
+  getCachedNoteTitles,
+  cacheNoteTitle,
   getDemoNotebooks,
   saveDemoNotebooks,
   getDemoNotes,
@@ -77,6 +79,24 @@ export function App() {
 
   const toggleSidebar = () => {
     setIsSidebarVisible((prev) => !prev);
+  };
+
+  const noteContentRequests = useRef(new Map<string, Promise<{ content: string; sha: string }>>());
+  const fetchNoteContentOnce = (
+    authToken: string,
+    owner: string,
+    repo: string,
+    path: string,
+    branch: string
+  ) => {
+    const requestKey = `${owner}/${repo}:${branch}:${path}`;
+    const existingRequest = noteContentRequests.current.get(requestKey);
+    if (existingRequest) return existingRequest;
+
+    const request = getNoteContent(authToken, owner, repo, path, branch)
+      .finally(() => noteContentRequests.current.delete(requestKey));
+    noteContentRequests.current.set(requestKey, request);
+    return request;
   };
 
   // Check for OAuth tokens or callbacks in URL
@@ -219,14 +239,58 @@ export function App() {
         )
       );
 
-      setNotes(mdNotes);
+      const titleCache = getCachedNoteTitles();
+      const cachedNotes = mdNotes.map((note) => {
+        const cachedTitle = titleCache[`${activeNotebook.fullName}:${note.sha}`];
+        return cachedTitle ? { ...note, title: cachedTitle } : note;
+      });
+      setNotes(cachedNotes);
 
-      if (mdNotes.length > 0) {
+      if (cachedNotes.length > 0) {
         const savedNoteId = getActiveNoteId();
-        const initialNote = mdNotes.find((n) => n.id === savedNoteId) || mdNotes[0];
+        const initialNote = cachedNotes.find((note) => note.id === savedNoteId) || cachedNotes[0];
+        setActiveNote(initialNote);
+
+        const uncachedNotes = mdNotes.filter(
+          (note) => !titleCache[`${activeNotebook.fullName}:${note.sha}`]
+        );
+        let nextNoteIndex = 0;
+        const resolvedTitles: Record<string, string> = {};
+        const titleWorkers = Array.from(
+          { length: Math.min(4, uncachedNotes.length) },
+          async () => {
+            while (isSubscribed && nextNoteIndex < uncachedNotes.length) {
+              const note = uncachedNotes[nextNoteIndex++];
+              try {
+                const { content, sha } = await fetchNoteContentOnce(
+                  token,
+                  activeNotebook.owner,
+                  activeNotebook.name,
+                  note.path,
+                  branch
+                );
+                const title = extractTitle(content, note.path);
+                resolvedTitles[`${activeNotebook.fullName}:${sha}`] = title;
+                if (!isSubscribed) continue;
+
+                setNotes((previous) => previous.map((item) =>
+                  item.id === note.id ? { ...item, title, sha } : item
+                ));
+                setActiveNote((previous) => previous?.id === note.id
+                  ? { ...previous, title, sha }
+                  : previous
+                );
+              } catch (error) {
+                console.warn(`Could not resolve the title for ${note.path}:`, error);
+              }
+            }
+          }
+        );
+
+        void Promise.all(titleWorkers).then(() => cacheNoteTitles(resolvedTitles));
 
         try {
-          const { content, sha } = await getNoteContent(
+          const { content, sha } = await fetchNoteContentOnce(
             token,
             activeNotebook.owner,
             activeNotebook.name,
@@ -240,14 +304,14 @@ export function App() {
               sha,
               title: extractTitle(content, initialNote.path),
             };
-            setActiveNote(enrichedNote);
-            setNotes((prevNotes) =>
-              prevNotes.map((n) => (n.id === initialNote.id ? enrichedNote : n))
+            cacheNoteTitle(`${activeNotebook.fullName}:${sha}`, enrichedNote.title);
+            setActiveNote((previous) => previous?.id === initialNote.id ? enrichedNote : previous);
+            setNotes((previous) =>
+              previous.map((note) => (note.id === initialNote.id ? enrichedNote : note))
             );
           }
-        } catch (err) {
-          console.error('Failed to fetch initial note content:', err);
-          if (isSubscribed) setActiveNote(initialNote);
+        } catch (error) {
+          console.error('Failed to fetch the selected note:', error);
         }
       } else {
         setActiveNote(null);
@@ -267,7 +331,7 @@ export function App() {
 
     if (!note.content && token && activeNotebook && !currentUser?.isDemo) {
       try {
-        const { content, sha } = await getNoteContent(
+        const { content, sha } = await fetchNoteContentOnce(
           token,
           activeNotebook.owner,
           activeNotebook.name,
@@ -409,6 +473,7 @@ export function App() {
         isDirty: false,
         syncStatus: 'synced',
       };
+      cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, committedNote.title);
 
       setActiveNote(committedNote);
       setNotes((prev) =>
@@ -494,6 +559,7 @@ export function App() {
           isDirty: false,
           syncStatus: 'synced' as const,
         };
+        cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, persistedNote.title);
         setActiveNote(persistedNote);
         setNotes((previous) => previous.map((note) => note.id === newNote.id ? persistedNote : note));
       }
@@ -593,6 +659,7 @@ export function App() {
               lastCommitSha: result.commitSha.slice(0, 7),
               lastCommittedAt: new Date().toISOString(),
             });
+            cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, createdNote.title);
           }
         } catch (error) {
           usedPaths.delete(path.toLowerCase());
