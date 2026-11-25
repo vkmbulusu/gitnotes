@@ -115,6 +115,31 @@ export async function listBranches(
   return branches.map((branch: any) => branch.name as string);
 }
 
+/** Create a branch from an existing branch's current commit. */
+export async function createBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  branchName: string,
+  baseBranch: string
+): Promise<string> {
+  const name = branchName.trim();
+  const invalidName = !name || /[\s~^:?*\[\]\\]/.test(name) || name.includes('..') || name.includes('@{') ||
+    name.startsWith('/') || name.endsWith('/') || name.endsWith('.') ||
+    name.split('/').some((segment) => !segment || segment.startsWith('.') || segment.endsWith('.lock'));
+  if (invalidName) throw new Error('Enter a valid branch name without spaces or Git-reserved characters.');
+
+  const base = await githubFetch(
+    `/repos/${owner}/${repo}/branches/${encodeURIComponent(baseBranch)}`,
+    token
+  );
+  await githubFetch(`/repos/${owner}/${repo}/git/refs`, token, {
+    method: 'POST',
+    body: JSON.stringify({ ref: `refs/heads/${name}`, sha: base.commit.sha }),
+  });
+  return name;
+}
+
 /**
  * Create a new repository on GitHub to act as a notebook
  */
