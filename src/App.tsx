@@ -22,6 +22,7 @@ import {
   verifyToken,
   listRepositories,
   listBranches,
+  createBranch,
   createRepository,
   listMarkdownNotes,
   getNoteContent,
@@ -37,6 +38,9 @@ import { GitHubAuthModal } from './components/GitHubAuthModal';
 import { NewNotebookModal } from './components/NewNotebookModal';
 import { MigrateDemoModal } from './components/MigrateDemoModal';
 import { DEMO_USER } from './services/demoData';
+
+const noteTitleCacheKey = (repo: string, branch: string, path: string, sha: string) =>
+  JSON.stringify([repo.toLowerCase(), branch, path, sha]);
 
 export function App() {
   const [token, setToken] = useState<string | null>(getStoredToken());
@@ -241,7 +245,8 @@ export function App() {
 
       const titleCache = getCachedNoteTitles();
       const cachedNotes = mdNotes.map((note) => {
-        const cachedTitle = titleCache[`${activeNotebook.fullName}:${note.sha}`];
+        const cacheKey = noteTitleCacheKey(activeNotebook.fullName, branch, note.path, note.sha);
+        const cachedTitle = titleCache[cacheKey];
         return cachedTitle ? { ...note, title: cachedTitle } : note;
       });
       setNotes(cachedNotes);
@@ -252,7 +257,7 @@ export function App() {
         setActiveNote(initialNote);
 
         const uncachedNotes = mdNotes.filter(
-          (note) => !titleCache[`${activeNotebook.fullName}:${note.sha}`]
+          (note) => !titleCache[noteTitleCacheKey(activeNotebook.fullName, branch, note.path, note.sha)]
         );
         let nextNoteIndex = 0;
         const resolvedTitles: Record<string, string> = {};
@@ -270,14 +275,14 @@ export function App() {
                   branch
                 );
                 const title = extractTitle(content, note.path);
-                resolvedTitles[`${activeNotebook.fullName}:${sha}`] = title;
+                resolvedTitles[noteTitleCacheKey(activeNotebook.fullName, branch, note.path, sha)] = title;
                 if (!isSubscribed) continue;
 
                 setNotes((previous) => previous.map((item) =>
-                  item.id === note.id ? { ...item, title, sha } : item
+                  item.id === note.id && (item.branch || branch) === branch ? { ...item, title, sha } : item
                 ));
                 setActiveNote((previous) => previous?.id === note.id
-                  ? { ...previous, title, sha }
+                  && (previous.branch || branch) === branch ? { ...previous, title, sha }
                   : previous
                 );
               } catch (error) {
@@ -304,7 +309,7 @@ export function App() {
               sha,
               title: extractTitle(content, initialNote.path),
             };
-            cacheNoteTitle(`${activeNotebook.fullName}:${sha}`, enrichedNote.title);
+            cacheNoteTitle(noteTitleCacheKey(activeNotebook.fullName, branch, initialNote.path, sha), enrichedNote.title);
             setActiveNote((previous) => previous?.id === initialNote.id ? enrichedNote : previous);
             setNotes((previous) =>
               previous.map((note) => (note.id === initialNote.id ? enrichedNote : note))
@@ -344,6 +349,15 @@ export function App() {
           sha,
           title: extractTitle(content, note.path),
         };
+        cacheNoteTitle(
+          noteTitleCacheKey(
+            activeNotebook.fullName,
+            note.branch || activeBranch || activeNotebook.defaultBranch,
+            note.path,
+            sha
+          ),
+          enriched.title
+        );
         setActiveNote(enriched);
         setNotes((prev) => prev.map((n) => (n.id === note.id ? enriched : n)));
         return;
@@ -473,7 +487,7 @@ export function App() {
         isDirty: false,
         syncStatus: 'synced',
       };
-      cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, committedNote.title);
+      cacheNoteTitle(noteTitleCacheKey(activeNotebook.fullName, activeNote.branch || activeBranch || activeNotebook.defaultBranch, activeNote.path, result.sha), committedNote.title);
 
       setActiveNote(committedNote);
       setNotes((prev) =>
@@ -488,7 +502,12 @@ export function App() {
   };
 
   // Create a new note at a chosen branch and folder.
-  const handleCreateNote = async (targetBranch: string, destinationFolder: string) => {
+  const handleCreateNote = async (
+    targetBranch: string,
+    destinationFolder: string,
+    shouldCreateBranch = false,
+    baseBranch = activeBranch || activeNotebook?.defaultBranch || 'main'
+  ) => {
     if (!activeNotebook || isCreatingNote) return;
 
     const folderSegments = destinationFolder
@@ -503,9 +522,24 @@ export function App() {
 
     setIsCreatingNote(true);
     try {
+      let branchToUse = targetBranch;
+      if (shouldCreateBranch) {
+        if (!token || currentUser?.isDemo) {
+          throw new Error('Sign in with GitHub to create a repository branch.');
+        }
+        branchToUse = await createBranch(
+          token,
+          activeNotebook.owner,
+          activeNotebook.name,
+          targetBranch,
+          baseBranch
+        );
+        setBranches((previous) => Array.from(new Set([...previous, branchToUse])));
+      }
+
       const existingNotes = currentUser?.isDemo || !token
         ? getDemoNotes()[activeNotebook.id] || []
-        : await listMarkdownNotes(token, activeNotebook.owner, activeNotebook.name, targetBranch);
+        : await listMarkdownNotes(token, activeNotebook.owner, activeNotebook.name, branchToUse);
       const occupiedPaths = new Set(existingNotes.map((note) => note.path.toLowerCase()));
 
       const baseTitle = 'New Note';
@@ -522,7 +556,7 @@ export function App() {
         id: filename,
         notebookId: activeNotebook.id,
         path: filename,
-        branch: targetBranch,
+        branch: branchToUse,
         title: baseTitle,
         content: initialContent,
         sha: 'initial',
@@ -550,7 +584,7 @@ export function App() {
           newNote.content,
           undefined,
           `Create note: ${newNote.title}`,
-          targetBranch
+          branchToUse
         );
         const persistedNote = {
           ...newNote,
@@ -559,7 +593,7 @@ export function App() {
           isDirty: false,
           syncStatus: 'synced' as const,
         };
-        cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, persistedNote.title);
+        cacheNoteTitle(noteTitleCacheKey(activeNotebook.fullName, branchToUse, filename, result.sha), persistedNote.title);
         setActiveNote(persistedNote);
         setNotes((previous) => previous.map((note) => note.id === newNote.id ? persistedNote : note));
       }
@@ -569,7 +603,7 @@ export function App() {
           ? { ...notebook, notesCount: (notebook.notesCount || 0) + 1 }
           : notebook
       ));
-      setActiveBranch(targetBranch);
+      setActiveBranch(branchToUse);
       setShowNewNoteModal(false);
     } catch (error: any) {
       console.error('Failed to create note:', error);
@@ -659,7 +693,7 @@ export function App() {
               lastCommitSha: result.commitSha.slice(0, 7),
               lastCommittedAt: new Date().toISOString(),
             });
-            cacheNoteTitle(`${activeNotebook.fullName}:${result.sha}`, createdNote.title);
+            cacheNoteTitle(noteTitleCacheKey(activeNotebook.fullName, targetBranch, path, result.sha), createdNote.title);
           }
         } catch (error) {
           usedPaths.delete(path.toLowerCase());
@@ -899,6 +933,7 @@ export function App() {
           isOpen={showNewNoteModal}
           branches={branches}
           defaultBranch={activeBranch || activeNotebook.defaultBranch}
+          canCreateBranch={Boolean(token && !currentUser?.isDemo)}
           isCreating={isCreatingNote}
           onClose={() => setShowNewNoteModal(false)}
           onCreate={handleCreateNote}
