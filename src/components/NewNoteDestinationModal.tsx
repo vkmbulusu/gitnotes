@@ -26,6 +26,7 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
   const [newBranchName, setNewBranchName] = useState('');
   const [baseBranch, setBaseBranch] = useState(defaultBranch);
   const [folder, setFolder] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen) return null;
 
@@ -34,6 +35,7 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
     setNewBranchName('');
     setBaseBranch(defaultBranch);
     setFolder('');
+    setErrorMessage('');
     onClose();
   };
 
@@ -41,8 +43,13 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
     const creatingBranch = branch === CREATE_BRANCH_OPTION;
     const targetBranch = creatingBranch ? newBranchName.trim() : branch;
     if (!targetBranch) return;
-    await onCreate(targetBranch, folder, creatingBranch, baseBranch);
-    close();
+    setErrorMessage('');
+    try {
+      await onCreate(targetBranch, folder, creatingBranch, baseBranch);
+      close();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not create the note.');
+    }
   };
 
   return (
@@ -106,6 +113,7 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
               className="w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-100 placeholder:text-neutral-400 outline-none focus:border-amber-500"
             />
           </label>
+          {errorMessage && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{errorMessage}</p>}
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 bg-neutral-50 dark:bg-neutral-950/50 border-t border-neutral-200 dark:border-neutral-800">
