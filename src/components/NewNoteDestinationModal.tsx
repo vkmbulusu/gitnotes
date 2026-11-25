@@ -5,33 +5,43 @@ interface NewNoteDestinationModalProps {
   isOpen: boolean;
   branches: string[];
   defaultBranch: string;
+  canCreateBranch: boolean;
   isCreating: boolean;
   onClose: () => void;
-  onCreate: (branch: string, folder: string) => Promise<void>;
+  onCreate: (branch: string, folder: string, createBranch: boolean, baseBranch: string) => Promise<void>;
 }
+
+const CREATE_BRANCH_OPTION = '__create_branch__';
 
 export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = ({
   isOpen,
   branches,
   defaultBranch,
+  canCreateBranch,
   isCreating,
   onClose,
   onCreate,
 }) => {
   const [branch, setBranch] = useState(defaultBranch);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [baseBranch, setBaseBranch] = useState(defaultBranch);
   const [folder, setFolder] = useState('');
 
   if (!isOpen) return null;
 
   const close = () => {
     setBranch(defaultBranch);
+    setNewBranchName('');
+    setBaseBranch(defaultBranch);
     setFolder('');
     onClose();
   };
 
   const create = async () => {
-    if (!branch) return;
-    await onCreate(branch, folder);
+    const creatingBranch = branch === CREATE_BRANCH_OPTION;
+    const targetBranch = creatingBranch ? newBranchName.trim() : branch;
+    if (!targetBranch) return;
+    await onCreate(targetBranch, folder, creatingBranch, baseBranch);
     close();
   };
 
@@ -58,8 +68,34 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
               className="w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-100 outline-none focus:border-amber-500"
             >
               {branches.map((name) => <option key={name} value={name}>{name}</option>)}
+              {canCreateBranch && <option value={CREATE_BRANCH_OPTION}>＋ Create a new branch…</option>}
             </select>
           </label>
+          {branch === CREATE_BRANCH_OPTION && (
+            <>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">New branch name</span>
+                <input
+                  value={newBranchName}
+                  onChange={(event) => setNewBranchName(event.target.value)}
+                  placeholder="e.g. notes/spouse"
+                  disabled={isCreating}
+                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-100 placeholder:text-neutral-400 outline-none focus:border-amber-500"
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Start from</span>
+                <select
+                  value={baseBranch}
+                  onChange={(event) => setBaseBranch(event.target.value)}
+                  disabled={isCreating}
+                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-100 outline-none focus:border-amber-500"
+                >
+                  {branches.map((name) => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </label>
+            </>
+          )}
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Folder path <span className="font-normal text-neutral-400">(optional)</span></span>
             <input
@@ -74,7 +110,7 @@ export const NewNoteDestinationModal: React.FC<NewNoteDestinationModalProps> = (
 
         <div className="flex justify-end gap-2 px-5 py-4 bg-neutral-50 dark:bg-neutral-950/50 border-t border-neutral-200 dark:border-neutral-800">
           <button type="button" onClick={close} disabled={isCreating} className="px-3 py-2 rounded-lg text-xs font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/70 dark:hover:bg-neutral-800 disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={create} disabled={isCreating || !branch} className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50">
+          <button type="button" onClick={create} disabled={isCreating || (branch === CREATE_BRANCH_OPTION ? !newBranchName.trim() : !branch)} className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50">
             <FilePlus2 className="w-3.5 h-3.5" />
             {isCreating ? 'Creating…' : 'Create note'}
           </button>
