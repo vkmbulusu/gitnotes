@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Notebook, Note, GitHubUser } from './types';
 import {
   getStoredToken,
@@ -86,13 +86,13 @@ export function App() {
   };
 
   const noteContentRequests = useRef(new Map<string, Promise<{ content: string; sha: string }>>());
-  const fetchNoteContentOnce = (
+  const fetchNoteContentOnce = useCallback((
     authToken: string,
     owner: string,
     repo: string,
     path: string,
     branch: string
-  ) => {
+  ): Promise<{ content: string; sha: string }> => {
     const requestKey = `${owner}/${repo}:${branch}:${path}`;
     const existingRequest = noteContentRequests.current.get(requestKey);
     if (existingRequest) return existingRequest;
@@ -101,7 +101,7 @@ export function App() {
       .finally(() => noteContentRequests.current.delete(requestKey));
     noteContentRequests.current.set(requestKey, request);
     return request;
-  };
+  }, []);
 
   // Check for OAuth tokens or callbacks in URL
   useEffect(() => {
@@ -326,7 +326,7 @@ export function App() {
     return () => {
       isSubscribed = false;
     };
-  }, [activeNotebook, activeBranch, token, currentUser?.isDemo]);
+  }, [activeNotebook, activeBranch, token, currentUser?.isDemo, fetchNoteContentOnce]);
 
   // Note Selection
   const handleSelectNote = async (note: Note) => {
@@ -392,7 +392,7 @@ export function App() {
     }
 
     setBranches([activeNotebook.defaultBranch]);
-    if (!token || currentUser?.isDemo) return;
+    if (!token || currentUser?.isDemo || (currentUser?.provider && currentUser.provider !== 'github')) return;
 
     let isSubscribed = true;
     listBranches(token, activeNotebook.owner, activeNotebook.name)
@@ -515,8 +515,7 @@ export function App() {
       .map((segment) => segment.trim())
       .filter(Boolean);
     if (folderSegments.some((segment) => segment === '.' || segment === '..' || segment.includes('\\'))) {
-      alert('Enter a folder path using normal folder names. Relative path segments are not allowed.');
-      return;
+      throw new Error('Enter a folder path using normal folder names. Relative path segments are not allowed.');
     }
     const folderPrefix = folderSegments.length ? `${folderSegments.join('/')}/` : '';
 
@@ -524,8 +523,12 @@ export function App() {
     try {
       let branchToUse = targetBranch;
       if (shouldCreateBranch) {
-        if (!token || currentUser?.isDemo) {
+        if (!token || currentUser?.isDemo || (currentUser?.provider && currentUser.provider !== 'github')) {
           throw new Error('Sign in with GitHub to create a repository branch.');
+        }
+        const existingBranches = await listBranches(token, activeNotebook.owner, activeNotebook.name);
+        if (existingBranches.includes(targetBranch)) {
+          throw new Error(`The branch "${targetBranch}" already exists. Reopen this dialog and choose it from the branch list.`);
         }
         branchToUse = await createBranch(
           token,
@@ -607,7 +610,7 @@ export function App() {
       setShowNewNoteModal(false);
     } catch (error: any) {
       console.error('Failed to create note:', error);
-      alert(`Could not create the note: ${error.message || 'Please check repository permissions.'}`);
+      throw new Error(error.message || 'Could not create the note. Please check repository permissions.');
     } finally {
       setIsCreatingNote(false);
     }
@@ -933,7 +936,7 @@ export function App() {
           isOpen={showNewNoteModal}
           branches={branches}
           defaultBranch={activeBranch || activeNotebook.defaultBranch}
-          canCreateBranch={Boolean(token && !currentUser?.isDemo)}
+          canCreateBranch={Boolean(token && !currentUser?.isDemo && (!currentUser?.provider || currentUser.provider === 'github'))}
           isCreating={isCreatingNote}
           onClose={() => setShowNewNoteModal(false)}
           onCreate={handleCreateNote}
